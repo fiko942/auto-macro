@@ -1,0 +1,40 @@
+{
+    "timestamp": "2026-01-01T18:18:21+07:00",
+    "project_name": "Tobelsoft Macro",
+    "project_goal": "A desktop application for gaming automation, allowing users to create, manage, and execute complex hotkey macros with multiple triggers and sequential actions.",
+    "project_structure": {
+        "src": {
+            "core": "Core logic for HotkeyManager, Input Listeners (pynput), and File Operations.",
+            "widgets": "Custom UI widgets including HotkeyItemWidget and AddEditHotkeyDialog.",
+            "pages": "Main UI pages like HotkeyPage which connect UI to Controllers.",
+            "controllers": "Bridge logic between UI and Core (HotkeyController).",
+            "components": "Reusable UI components (GamingButton, GamingCheckbox, etc.)",
+            "theme": "Theme definitions (Colors, Fonts)."
+        },
+        "root": "Main entry point (main.py) and configuration files."
+    },
+    "features": {
+        "implemented": [
+            "Create/Edit/Delete Hotkeys",
+            "Multiple Triggers support (Keyboard inputs)",
+            "Sequential Actions (Key Press, Key Down/Up, Delay)",
+            "Drag & Drop Reordering for Triggers and Actions",
+            "Input Blocking (Block Original Input) option",
+            "Repeat while held option",
+            "Import/Export single Hotkey to JSON",
+            "Start/Stop global macro toggle",
+            "Backend implementation for 'Block Original Input' logic"
+        ],
+        "in_progress": [
+            "Refining UI/UX for consistent gaming aesthetic"
+        ]
+    },
+    "technical_workflow": {
+        "development_flow": "1. Define UI in 'widgets/' or 'pages/'. 2. Create logic in 'controllers/'. 3. Implement core functionality in 'core/'.",
+        "ui_components": "Always use 'src.components' (GamingCheckbox, GamingButton) for consistency instead of native Qt widgets.",
+        "running_app": "Run 'python main.py' from the root directory. Hotkey system requires admin privileges for input simulation.",
+        "data_persistence": "Hotkeys are managed in memory by HotkeyManager and can be serialized to JSON."
+    },
+    "session_summary": "Refined the Action Editor UI. Added Drag & Drop reordering, Custom Checkboxes for better visibility, and fixed layout spacing.",
+    "context_for_next_session": "The UI is stable. The 'Block Original Input' feature logic needs to be verified in the backend."
+}
