@@ -113,7 +113,6 @@ class HotkeyManager:
         
         # Modifier tracking
         self._pressed_keys: Set[str] = set()
-        self._pressed_keys: Set[str] = set()
         self._pressed_mouse: Set[str] = set()
         
         # Master Toggle Keys
@@ -204,14 +203,7 @@ class HotkeyManager:
         # Force restart service to ensure new keys are picked up by the hook
         self.restart_service()
             
-        if self._mouse_listener:
-            try:
-                self._mouse_listener.stop()
-            except: pass
-            self._mouse_listener = None
-            
-        if self.on_status_changed:
-            self.on_status_changed(False)
+
 
     def _vk_to_str(self, vk: int) -> Optional[str]:
         """Convert Virtual Key code to string"""
