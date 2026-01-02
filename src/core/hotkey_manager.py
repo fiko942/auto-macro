@@ -17,9 +17,9 @@ from src.core.direct_input import DirectInputSender
 # VK Constants for manual mapping if needed
 VK_MAP = {
     0x08: 'backspace', 0x09: 'tab', 0x0D: 'enter', 0x1B: 'esc', 0x20: 'space',
-    0x21: 'page up', 0x22: 'page down', 0x23: 'end', 0x24: 'home',
+    0x21: 'pageup', 0x22: 'pagedown', 0x23: 'end', 0x24: 'home',
     0x25: 'left', 0x26: 'up', 0x27: 'right', 0x28: 'down',
-    0x2C: 'print screen', 0x2D: 'insert', 0x2E: 'delete',
+    0x2C: 'printscreen', 0x2D: 'insert', 0x2E: 'delete',
     0x70: 'f1', 0x71: 'f2', 0x72: 'f3', 0x73: 'f4', 0x74: 'f5', 0x75: 'f6',
     0x76: 'f7', 0x77: 'f8', 0x78: 'f9', 0x79: 'f10', 0x7A: 'f11', 0x7B: 'f12',
     0xA0: 'shift', 0xA1: 'shift', 0xA2: 'ctrl', 0xA3: 'ctrl', 
@@ -127,6 +127,26 @@ class HotkeyManager:
         self._repeat_threads = {}
         self._stop_repeat = {}
 
+    def _stop_listeners(self):
+        """Stop low-level listeners"""
+        if self._keyboard_listener:
+            try: self._keyboard_listener.stop()
+            except: pass
+            self._keyboard_listener = None
+            
+        if self._mouse_listener:
+            try: self._mouse_listener.stop()
+            except: pass
+            self._mouse_listener = None
+
+    def restart_service(self):
+        """Restart background listeners (force refresh context)"""
+        print("[DEBUG] Restarting Input Service...")
+        self._stop_listeners()
+        # Brief pause to ensure OS unhooks
+        time.sleep(0.1)
+        self.start_listeners()
+
     def start_listeners(self):
         """Start listeners (Background service)"""
         # Only start if not already running to prevent duplication
@@ -181,6 +201,8 @@ class HotkeyManager:
         """Set key yang digunakan untuk toggle On/Off global"""
         self.master_trigger_keys = keys
         print(f"[DEBUG] Master triggers set: {keys}")
+        # Force restart service to ensure new keys are picked up by the hook
+        self.restart_service()
             
         if self._mouse_listener:
             try:
@@ -242,6 +264,9 @@ class HotkeyManager:
                 combo = '+'.join(mods) + '+' + key_name
             else:
                 combo = key_name
+                
+        # DEBUG: Print what we see
+        print(f"[FILTER] Combo: {combo}, Masters: {self.master_trigger_keys}")
                 
         # 1. CHECK MASTER TOGGLE (Highest Priority)
         # Check if matched ANY master trigger
