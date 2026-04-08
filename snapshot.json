@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-01-01T18:18:21+07:00",
+    "timestamp": "2026-04-08T20:45:13.4382322+07:00",
     "project_name": "Tobelsoft Macro",
     "project_goal": "A desktop application for gaming automation, allowing users to create, manage, and execute complex hotkey macros with multiple triggers and sequential actions.",
     "project_structure": {
@@ -23,18 +23,24 @@
             "Repeat while held option",
             "Import/Export single Hotkey to JSON",
             "Start/Stop global macro toggle",
-            "Backend implementation for 'Block Original Input' logic"
+            "Backend implementation for 'Block Original Input' logic",
+            "Reliable Windows SendInput backend for action execution",
+            "Serialized action execution to prevent dropped sequences",
+            "Stable listener startup for keyboard and mouse hooks",
+            "Normalized key names for trigger/action consistency",
+            "PyInstaller one-file build output available as Tobelsoft.exe"
         ],
         "in_progress": [
-            "Refining UI/UX for consistent gaming aesthetic"
+            "Game-specific trigger reliability tuning"
         ]
     },
     "technical_workflow": {
         "development_flow": "1. Define UI in 'widgets/' or 'pages/'. 2. Create logic in 'controllers/'. 3. Implement core functionality in 'core/'.",
         "ui_components": "Always use 'src.components' (GamingCheckbox, GamingButton) for consistency instead of native Qt widgets.",
-        "running_app": "Run 'python main.py' from the root directory. Hotkey system requires admin privileges for input simulation.",
-        "data_persistence": "Hotkeys are managed in memory by HotkeyManager and can be serialized to JSON."
+        "running_app": "Run 'python main.py' from the root directory. Hotkey system and SendInput action playback work best with matching privilege level; admin is recommended for game automation.",
+        "data_persistence": "Hotkeys are managed in memory by HotkeyManager and can be serialized to JSON.",
+        "build_artifact": "Use PyInstaller with one-file windowed output; current exe artifact is dist/Tobelsoft.exe"
     },
-    "session_summary": "Refined the Action Editor UI. Added Drag & Drop reordering, Custom Checkboxes for better visibility, and fixed layout spacing.",
-    "context_for_next_session": "The UI is stable. The 'Block Original Input' feature logic needs to be verified in the backend."
+    "session_summary": "Fixed input reliability issues in the macro engine by switching action playback to a Windows SendInput backend, serializing action execution, and stabilizing listener startup. Built a working one-file Windows executable with PyInstaller.",
+    "context_for_next_session": "Focus on game-specific edge cases if input still misses in certain titles. The built executable is available and the backend import/runtime issues have been resolved."
 }
