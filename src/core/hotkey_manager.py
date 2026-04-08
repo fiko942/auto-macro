@@ -121,6 +121,8 @@ class HotkeyManager:
         # Pynput Listeners
         self._keyboard_listener = None
         self._mouse_listener = None
+        self._listener_lock = threading.Lock()
+        self._action_lock = threading.RLock()
         
         # Repeat logic
         self._repeat_threads = {}
@@ -128,15 +130,20 @@ class HotkeyManager:
 
     def _stop_listeners(self):
         """Stop low-level listeners"""
-        if self._keyboard_listener:
-            try: self._keyboard_listener.stop()
-            except: pass
-            self._keyboard_listener = None
-            
-        if self._mouse_listener:
-            try: self._mouse_listener.stop()
-            except: pass
-            self._mouse_listener = None
+        with self._listener_lock:
+            if self._keyboard_listener:
+                try:
+                    self._keyboard_listener.stop()
+                except:
+                    pass
+                self._keyboard_listener = None
+                
+            if self._mouse_listener:
+                try:
+                    self._mouse_listener.stop()
+                except:
+                    pass
+                self._mouse_listener = None
 
     def restart_service(self):
         """Restart background listeners (force refresh context)"""
@@ -148,23 +155,29 @@ class HotkeyManager:
 
     def start_listeners(self):
         """Start listeners (Background service)"""
-        # Only start if not already running to prevent duplication
-        if self._keyboard_listener and self._keyboard_listener.running:
-             return
+        with self._listener_lock:
+            keyboard_running = bool(
+                self._keyboard_listener and getattr(self._keyboard_listener, "running", False)
+            )
+            mouse_running = bool(
+                self._mouse_listener and getattr(self._mouse_listener, "running", False)
+            )
 
-        # NOTE: win32_event_filter only works on Windows and allows us to BLOCK input
-        self._keyboard_listener = keyboard.Listener(
-            on_press=self._on_key_press,
-            on_release=self._on_key_release,
-            win32_event_filter=self._win32_event_filter) # Hook for blocking
-            
-        self._keyboard_listener.start()
-        
-        self._mouse_listener = mouse.Listener(
-            on_click=self._on_mouse_click)
-        self._mouse_listener.start()
-        
-        print("[DEBUG] Pynput Listeners started (Service).")
+            # NOTE: win32_event_filter only works on Windows and allows us to BLOCK input
+            if not keyboard_running:
+                self._keyboard_listener = keyboard.Listener(
+                    on_press=self._on_key_press,
+                    on_release=self._on_key_release,
+                    win32_event_filter=self._win32_event_filter
+                )
+                self._keyboard_listener.start()
+
+            if not mouse_running:
+                self._mouse_listener = mouse.Listener(
+                    on_click=self._on_mouse_click)
+                self._mouse_listener.start()
+
+            print("[DEBUG] Pynput Listeners started (Service).")
 
     def start(self):
         """Aktifkan listeners & logic macro"""
@@ -189,8 +202,11 @@ class HotkeyManager:
         self._active = False
         
         # Stop repeat threads
-        for binding_id in self._stop_repeat:
+        for binding_id in list(self._stop_repeat):
             self._stop_repeat[binding_id] = True
+
+        self._pressed_keys.clear()
+        self._pressed_mouse.clear()
             
         # Notify UI
         if self.on_status_changed:
@@ -359,6 +375,8 @@ class HotkeyManager:
     def _on_key_press(self, key):
         try:
             key_name = self._get_key_name(key)
+            if not key_name:
+                return
             self._pressed_keys.add(key_name)
             
             # Build trigger combo
@@ -371,6 +389,8 @@ class HotkeyManager:
     def _on_key_release(self, key):
         try:
             key_name = self._get_key_name(key)
+            if not key_name:
+                return
             self._pressed_keys.discard(key_name)
             
             # Handle modifiers cleanup (ctrl_l vs ctrl)
@@ -394,30 +414,75 @@ class HotkeyManager:
     def _execute_binding(self, binding: HotkeyBinding):
         """Execute binding actions"""
         def run_in_thread():
-            if self.on_binding_triggered:
-                self.on_binding_triggered(binding)
-            
-            if binding.repeat:
-                self._start_repeat(binding)
-            else:
-                self._execute_actions(binding.actions)
+            with self._action_lock:
+                if self.on_binding_triggered:
+                    self.on_binding_triggered(binding)
+                
+                if binding.repeat:
+                    self._start_repeat(binding)
+                else:
+                    self._execute_actions(binding.actions)
         
         threading.Thread(target=run_in_thread, daemon=True).start()
     
     def _execute_actions(self, actions: List[KeyAction]):
         """Execute logic menggunakan DirectInputSender (Pynput based)"""
-        for action in actions:
-            if action.action_type == ActionType.KEY_PRESS:
-                for key in action.keys:
-                    if 'mouse_' in key:
-                         btn = key.replace('mouse_', '')
-                         DirectInputSender.mouse_click(btn)
-                    else:
-                        DirectInputSender.press(key)
-            elif action.action_type == ActionType.DELAY:
-                time.sleep(action.duration / 1000.0)
-            # Add other action types as needed (key_hold, etc) similar to before
-            # For brevity & PB focus, key_press & delay are primary
+        with self._action_lock:
+            for action in actions:
+                if action.action_type == ActionType.KEY_PRESS:
+                    for key in action.keys:
+                        self._send_single_action_key(key, press_duration=0.05)
+                        time.sleep(DirectInputSender.DEFAULT_INTER_KEY_DELAY)
+                elif action.action_type == ActionType.KEY_SEQUENCE:
+                    for key in action.keys:
+                        self._send_single_action_key(key, press_duration=0.05)
+                        time.sleep(DirectInputSender.DEFAULT_INTER_KEY_DELAY)
+                elif action.action_type == ActionType.KEY_DOWN:
+                    for key in action.keys:
+                        self._send_single_action_key(key, press_duration=None, key_down_only=True)
+                elif action.action_type == ActionType.KEY_UP:
+                    for key in action.keys:
+                        self._send_single_action_key(key, press_duration=None, key_up_only=True)
+                elif action.action_type == ActionType.KEY_HOLD:
+                    if not action.keys:
+                        continue
+                    key = action.keys[0]
+                    self._send_single_action_key(key, press_duration=None, key_down_only=True)
+                    time.sleep(max(action.duration, 0) / 1000.0)
+                    self._send_single_action_key(key, press_duration=None, key_up_only=True)
+                elif action.action_type == ActionType.DELAY:
+                    time.sleep(action.duration / 1000.0)
+
+    def _send_single_action_key(
+        self,
+        key: str,
+        press_duration: Optional[float] = None,
+        key_down_only: bool = False,
+        key_up_only: bool = False
+    ):
+        """Send one key or mouse action in a consistent way."""
+        if not key:
+            return
+
+        key = key.lower().strip()
+        if key_down_only:
+            if 'mouse_' in key:
+                return
+            DirectInputSender.key_down(key)
+            return
+
+        if key_up_only:
+            if 'mouse_' in key:
+                return
+            DirectInputSender.key_up(key)
+            return
+
+        if 'mouse_' in key:
+            btn = key.replace('mouse_', '')
+            DirectInputSender.mouse_click(btn)
+            return
+
+        DirectInputSender.press(key, duration=press_duration or DirectInputSender.DEFAULT_PRESS_DURATION)
 
     def _start_repeat(self, binding: HotkeyBinding):
         # ... logic repeat sama ...
