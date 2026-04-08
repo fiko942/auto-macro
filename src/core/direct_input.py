@@ -6,6 +6,7 @@ fallback for unsupported environments or unusual keys.
 """
 import os
 import time
+import atexit
 import threading
 import ctypes
 from ctypes import wintypes
@@ -16,6 +17,20 @@ from pynput.mouse import Button, Controller as MouseController
 # Fallback controllers
 keyboard = KeyboardController()
 mouse = MouseController()
+
+if os.name == "nt":
+    try:
+        _winmm = ctypes.WinDLL("winmm")
+        _timeBeginPeriod = _winmm.timeBeginPeriod
+        _timeEndPeriod = _winmm.timeEndPeriod
+        _timeBeginPeriod.argtypes = (wintypes.UINT,)
+        _timeBeginPeriod.restype = wintypes.UINT
+        _timeEndPeriod.argtypes = (wintypes.UINT,)
+        _timeEndPeriod.restype = wintypes.UINT
+        _timeBeginPeriod(1)
+        atexit.register(lambda: _timeEndPeriod(1))
+    except Exception:
+        pass
 
 
 if os.name == "nt":
@@ -80,8 +95,8 @@ class DirectInputSender:
     _MAPVK_VK_TO_VSC = 0
 
     # Better defaults for game input reliability.
-    DEFAULT_PRESS_DURATION = 0.05
-    DEFAULT_INTER_KEY_DELAY = 0.02
+    DEFAULT_PRESS_DURATION = 0.005
+    DEFAULT_INTER_KEY_DELAY = 0.001
 
     # Virtual-key codes for the keys we use in the app.
     VK_CODES = {
@@ -313,6 +328,26 @@ class DirectInputSender:
         return None
 
     @classmethod
+    def sleep_precise(cls, seconds: float):
+        """Sleep with better accuracy for short waits on Windows."""
+        if seconds <= 0:
+            return
+
+        if not cls._is_windows or seconds > 0.02:
+            time.sleep(seconds)
+            return
+
+        target = time.perf_counter() + seconds
+        while True:
+            remaining = target - time.perf_counter()
+            if remaining <= 0:
+                return
+            if remaining > 0.003:
+                time.sleep(remaining - 0.001)
+            else:
+                time.sleep(0)
+
+    @classmethod
     def key_down(cls, key: str):
         """Press a key without releasing it."""
         with cls._lock:
@@ -347,7 +382,7 @@ class DirectInputSender:
         print(f"[Input] Pressing: {key}")
         with cls._lock:
             cls.key_down(key)
-            time.sleep(duration)
+            cls.sleep_precise(duration)
             cls.key_up(key)
 
     @classmethod
@@ -366,7 +401,7 @@ class DirectInputSender:
 
             try:
                 mouse.press(btn)
-                time.sleep(0.02)
+                cls.sleep_precise(0.005)
                 mouse.release(btn)
                 return True
             except Exception as exc:

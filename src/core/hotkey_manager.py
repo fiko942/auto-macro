@@ -431,12 +431,18 @@ class HotkeyManager:
             for action in actions:
                 if action.action_type == ActionType.KEY_PRESS:
                     for key in action.keys:
-                        self._send_single_action_key(key, press_duration=0.05)
-                        time.sleep(DirectInputSender.DEFAULT_INTER_KEY_DELAY)
+                        self._send_single_action_key(
+                            key,
+                            press_duration=DirectInputSender.DEFAULT_PRESS_DURATION
+                        )
+                        DirectInputSender.sleep_precise(DirectInputSender.DEFAULT_INTER_KEY_DELAY)
                 elif action.action_type == ActionType.KEY_SEQUENCE:
                     for key in action.keys:
-                        self._send_single_action_key(key, press_duration=0.05)
-                        time.sleep(DirectInputSender.DEFAULT_INTER_KEY_DELAY)
+                        self._send_single_action_key(
+                            key,
+                            press_duration=DirectInputSender.DEFAULT_PRESS_DURATION
+                        )
+                        DirectInputSender.sleep_precise(DirectInputSender.DEFAULT_INTER_KEY_DELAY)
                 elif action.action_type == ActionType.KEY_DOWN:
                     for key in action.keys:
                         self._send_single_action_key(key, press_duration=None, key_down_only=True)
@@ -448,10 +454,10 @@ class HotkeyManager:
                         continue
                     key = action.keys[0]
                     self._send_single_action_key(key, press_duration=None, key_down_only=True)
-                    time.sleep(max(action.duration, 0) / 1000.0)
+                    DirectInputSender.sleep_precise(max(action.duration, 0) / 1000.0)
                     self._send_single_action_key(key, press_duration=None, key_up_only=True)
                 elif action.action_type == ActionType.DELAY:
-                    time.sleep(action.duration / 1000.0)
+                    DirectInputSender.sleep_precise(action.duration / 1000.0)
 
     def _send_single_action_key(
         self,
@@ -502,11 +508,11 @@ class HotkeyManager:
                             is_pressed = True
                 
                 if not is_pressed:
-                     self._stop_repeat[binding.id] = True
-                     break
+                    self._stop_repeat[binding.id] = True
+                    break
                 
                 self._execute_actions(binding.actions)
-                time.sleep(binding.repeat_delay / 1000.0)
+                DirectInputSender.sleep_precise(binding.repeat_delay / 1000.0)
                 
         t = threading.Thread(target=repeat_loop, daemon=True)
         self._repeat_threads[binding.id] = t
