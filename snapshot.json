@@ -1,5 +1,5 @@
 {
-    "timestamp": "2026-04-08T21:13:08.0345417+07:00",
+    "timestamp": "2026-04-08T21:27:19.1564918+07:00",
     "project_name": "Tobelsoft Macro",
     "project_goal": "A desktop application for gaming automation, allowing users to create, manage, and execute complex hotkey macros with multiple triggers and sequential actions.",
     "project_structure": {
@@ -41,6 +41,6 @@
         "data_persistence": "Hotkeys are managed in memory by HotkeyManager and can be serialized to JSON.",
         "build_artifact": "Use PyInstaller with one-file windowed output; current exe artifact is dist/Tobelsoft.exe"
     },
-    "session_summary": "Fixed input reliability issues in the macro engine by switching action playback to a Windows SendInput backend, serializing action execution, stabilizing listener startup, and tuning short-delay timing. Rebuilt the working one-file Windows executable with PyInstaller.",
+    "session_summary": "Adjusted timing for short macro delays and press handling to improve 1ms-style sequencing, then rebuilt the working one-file Windows executable with PyInstaller.",
     "context_for_next_session": "Focus on game-specific edge cases if input still misses in certain titles. The latest built executable is available and the backend import/runtime issues have been resolved."
 }

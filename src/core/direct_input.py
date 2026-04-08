@@ -95,7 +95,7 @@ class DirectInputSender:
     _MAPVK_VK_TO_VSC = 0
 
     # Better defaults for game input reliability.
-    DEFAULT_PRESS_DURATION = 0.005
+    DEFAULT_PRESS_DURATION = 0.01
     DEFAULT_INTER_KEY_DELAY = 0.001
 
     # Virtual-key codes for the keys we use in the app.
@@ -333,11 +333,17 @@ class DirectInputSender:
         if seconds <= 0:
             return
 
-        if not cls._is_windows or seconds > 0.02:
+        if not cls._is_windows:
             time.sleep(seconds)
             return
 
         target = time.perf_counter() + seconds
+        # For very short waits, spin so the delay stays close to the target.
+        if seconds <= 0.01:
+            while time.perf_counter() < target:
+                pass
+            return
+
         while True:
             remaining = target - time.perf_counter()
             if remaining <= 0:
