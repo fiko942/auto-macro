@@ -91,7 +91,7 @@ Represents a complete macro binding profile and the application root state:
 ```c
 #define MAX_BINDINGS 64
 #define MAX_ACTIONS_PER_BINDING 16
-#define MAX_TRIGGERS_PER_BINDING 4
+#define MAX_TRIGGERS_PER_BINDING 32
 #define MAX_MASTER_TRIGGERS 8
 #define MAX_NAME_LEN 64
 #define MAX_ID_LEN 40

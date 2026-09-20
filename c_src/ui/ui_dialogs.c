@@ -978,7 +978,7 @@ static LRESULT CALLBACK AddEditWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         case WM_LBUTTONDOWN: {
             int x = GET_X_LPARAM(lParam);
             int y = GET_Y_LPARAM(lParam);
-            if (y < 38 && x < 590) {
+            if (y < 38 && x < 600) {
                 ReleaseCapture();
                 SendMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
                 return 0;
@@ -1461,7 +1461,7 @@ static LRESULT CALLBACK AddEditWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             // + Add Trigger Button
             if (id == 101 && code == BN_CLICKED) {
                 if (g_add_edit_state.binding.trigger_count >= MAX_TRIGGERS_PER_BINDING) {
-                    MessageBoxW(hwnd, L"Maximum triggers reached (4 keys max).", L"Limit Exceeded", MB_OK | MB_ICONWARNING);
+                    MessageBoxW(hwnd, L"Maximum triggers reached (32 keys max).", L"Limit Exceeded", MB_OK | MB_ICONWARNING);
                     return 0;
                 }
                 char captured[MAX_KEY_NAME_LEN] = {0};
@@ -1795,37 +1795,37 @@ static LRESULT CALLBACK AddEditWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             RECT tag_rc = { 390, 10, rc.right - 45, 30 };
             DrawTextW(hdc, L"NATIVE C11 DIRECTINPUT PIPELINE", -1, &tag_rc, DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
             
-            // Card 1: Macro Identity & Trigger Keys Bento Box (y: 46..188)
-            RECT box1 = { 16, 46, rc.right - 16, 188 };
+            // Card 1: Macro Identity & Trigger Keys Bento Box (y: 46..286)
+            RECT box1 = { 16, 46, rc.right - 16, 286 };
             DrawRoundedRect(hdc, &box1, 8, COLOR_BG_CARD, COLOR_BORDER_SUBTLE, 1);
             DrawVectorIcon(hdc, ICON_KEYBOARD, 28, 52, 14, COLOR_NEON_CYAN);
             SetTextColor(hdc, COLOR_NEON_CYAN);
             SelectObject(hdc, g_theme_fonts.font_mono_small);
             RECT b1_title = { 46, 51, rc.right - 28, 68 };
-            DrawTextW(hdc, L"01 // MACRO IDENTITY & TRIGGER ACTIVATION", -1, &b1_title, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
+            DrawTextW(hdc, L"01 // MACRO IDENTITY & TRIGGER ACTIVATION (UP TO 32 TRIGGERS)", -1, &b1_title, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
             
-            // Card 2: Action Sequence Pipeline & Composer Bento Box (y: 196..426)
-            RECT box2 = { 16, 196, rc.right - 16, 426 };
+            // Card 2: Action Sequence Pipeline & Composer Bento Box (y: 294..524)
+            RECT box2 = { 16, 294, rc.right - 16, 524 };
             DrawRoundedRect(hdc, &box2, 8, COLOR_BG_CARD, COLOR_BORDER_SUBTLE, 1);
-            DrawVectorIcon(hdc, ICON_SEQUENCE, 28, 202, 14, COLOR_NEON_CYAN);
+            DrawVectorIcon(hdc, ICON_SEQUENCE, 28, 300, 14, COLOR_NEON_CYAN);
             SetTextColor(hdc, COLOR_NEON_CYAN);
             SelectObject(hdc, g_theme_fonts.font_mono_small);
-            RECT b2_title = { 46, 201, rc.right - 28, 218 };
+            RECT b2_title = { 46, 299, rc.right - 28, 316 };
             DrawTextW(hdc, L"02 // ACTION EXECUTION PIPELINE (ORDER OF EXECUTION)", -1, &b2_title, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
             
             // Divider line inside Card 2
             HPEN card2_div = CreatePen(PS_SOLID, 1, COLOR_BORDER_SUBTLE);
             old_p = SelectObject(hdc, card2_div);
-            MoveToEx(hdc, 28, 342, NULL);
-            LineTo(hdc, rc.right - 28, 342);
+            MoveToEx(hdc, 28, 440, NULL);
+            LineTo(hdc, rc.right - 28, 440);
             SelectObject(hdc, old_p);
             DeleteObject(card2_div);
             
             // Action Composer Sub-header
-            DrawVectorIcon(hdc, (g_add_edit_state.editing_action_idx >= 0) ? ICON_EDIT : ICON_TOOLS, 28, 349, 13, (g_add_edit_state.editing_action_idx >= 0) ? COLOR_NEON_GREEN : COLOR_TEXT_MUTED);
+            DrawVectorIcon(hdc, (g_add_edit_state.editing_action_idx >= 0) ? ICON_EDIT : ICON_TOOLS, 28, 447, 13, (g_add_edit_state.editing_action_idx >= 0) ? COLOR_NEON_GREEN : COLOR_TEXT_MUTED);
             SetTextColor(hdc, (g_add_edit_state.editing_action_idx >= 0) ? COLOR_NEON_GREEN : COLOR_TEXT_MUTED);
             SelectObject(hdc, g_theme_fonts.font_mono_small);
-            RECT b2_sub = { 46, 348, rc.right - 28, 364 };
+            RECT b2_sub = { 46, 446, rc.right - 28, 462 };
             if (g_add_edit_state.editing_action_idx >= 0) {
                 wchar_t sub_buf[80];
                 swprintf_s(sub_buf, 80, L"ACTION COMPOSER // EDITING STEP #%02d (ESC TO CANCEL):", g_add_edit_state.editing_action_idx + 1);
@@ -1834,47 +1834,47 @@ static LRESULT CALLBACK AddEditWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
                 DrawTextW(hdc, L"ACTION COMPOSER // CONFIGURE NEXT STEP IN PIPELINE:", -1, &b2_sub, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
             }
             
-            // Card 3: Execution Configuration & Safety Lock Bento Box (y: 434..596)
-            RECT box3 = { 16, 434, rc.right - 16, 596 };
+            // Card 3: Execution Configuration & Safety Lock Bento Box (y: 532..684)
+            RECT box3 = { 16, 532, rc.right - 16, 684 };
             DrawRoundedRect(hdc, &box3, 8, COLOR_BG_CARD, COLOR_BORDER_SUBTLE, 1);
-            DrawVectorIcon(hdc, ICON_SETTINGS, 28, 440, 14, COLOR_NEON_CYAN);
+            DrawVectorIcon(hdc, ICON_SETTINGS, 28, 538, 14, COLOR_NEON_CYAN);
             SetTextColor(hdc, COLOR_NEON_CYAN);
             SelectObject(hdc, g_theme_fonts.font_mono_small);
-            RECT b3_title = { 46, 439, rc.right - 28, 456 };
+            RECT b3_title = { 46, 537, rc.right - 28, 554 };
             DrawTextW(hdc, L"03 // EXECUTION SETTINGS & SAFETY PROTOCOL", -1, &b3_title, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
             
-            // Recessed Safety Lock Glass Tile inside Card 3 (y: 522..586)
-            RECT safety_tile = { 28, 522, rc.right - 28, 586 };
+            // Recessed Safety Lock Glass Tile inside Card 3 (y: 616..674)
+            RECT safety_tile = { 28, 616, rc.right - 28, 674 };
             DrawRoundedRect(hdc, &safety_tile, 6, COLOR_BG_INPUT, RGB(16, 185, 129), 1);
             
-            DrawVectorIcon(hdc, ICON_SHIELD, 38, 530, 14, COLOR_NEON_GREEN);
+            DrawVectorIcon(hdc, ICON_SHIELD, 38, 624, 14, COLOR_NEON_GREEN);
             SetTextColor(hdc, COLOR_NEON_GREEN);
             SelectObject(hdc, g_theme_fonts.font_mono_small);
-            RECT st_rc = { 58, 528, rc.right - 38, 544 };
+            RECT st_rc = { 58, 622, rc.right - 38, 638 };
             DrawTextW(hdc, L"HARDWARE SAFETY LOCK ACTIVE", -1, &st_rc, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
             
             SetTextColor(hdc, COLOR_TEXT_SECONDARY);
             SelectObject(hdc, g_theme_fonts.font_small);
-            RECT sd_rc = { 38, 546, rc.right - 38, 582 };
+            RECT sd_rc = { 38, 640, rc.right - 38, 670 };
             DrawTextW(hdc, L"Left Click (mouse_left) bypasses input suppression filters unconditionally to ensure normal OS cursor navigation and prevent accidental desktop lockouts.", -1, &sd_rc, DT_LEFT | DT_WORDBREAK | DT_NOPREFIX);
             
-            // Footer bottom divider line (y: 604)
+            // Footer bottom divider line (y: 692)
             HPEN footer_div = CreatePen(PS_SOLID, 1, RGB(30, 42, 60));
             old_p = SelectObject(hdc, footer_div);
-            MoveToEx(hdc, 0, 604, NULL);
-            LineTo(hdc, rc.right, 604);
+            MoveToEx(hdc, 0, 692, NULL);
+            LineTo(hdc, rc.right, 692);
             SelectObject(hdc, old_p);
             DeleteObject(footer_div);
             
             // Left Status Indicator in Footer
             HBRUSH dot_br = CreateSolidBrush(COLOR_NEON_GREEN);
-            RECT dot_rc = { 28, 631, 36, 639 };
+            RECT dot_rc = { 28, 715, 36, 723 };
             FillRect(hdc, &dot_rc, dot_br);
             DeleteObject(dot_br);
             
             SetTextColor(hdc, COLOR_TEXT_MUTED);
             SelectObject(hdc, g_theme_fonts.font_mono_small);
-            RECT foot_stat_rc = { 42, 625, 270, 645 };
+            RECT foot_stat_rc = { 42, 709, 230, 729 };
             DrawTextW(hdc, L"READY // HARDWARE DISPATCH", -1, &foot_stat_rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
             
             // Window Outer Border (1px high-precision border around entire frameless window)
@@ -1931,15 +1931,15 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
         class_registered = true;
     }
     
-    RECT parent_rc = {0, 0, 1000, 700};
+    RECT parent_rc = {0, 0, 1000, 800};
     if (parent_hwnd && IsWindow(parent_hwnd)) {
         GetWindowRect(parent_hwnd, &parent_rc);
     }
-    int w = 640, h = 680;
+    int w = 650, h = 760;
     int x = parent_rc.left + ((parent_rc.right - parent_rc.left) - w) / 2;
     int y = parent_rc.top + ((parent_rc.bottom - parent_rc.top) - h) / 2;
     if (x < 0) x = 50;
-    if (y < 0) y = 50;
+    if (y < 0) y = 30;
     
     HWND hwnd = CreateWindowExW(
         WS_EX_TOPMOST,
@@ -1960,10 +1960,10 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
     HFONT hFontSmallBold = g_theme_fonts.font_small_bold;
     
     // Top Titlebar Close Button
-    g_add_edit_state.btn_close = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 600, 6, 30, 26, hwnd, (HMENU)303, hInst, NULL);
+    g_add_edit_state.btn_close = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 610, 6, 30, 26, hwnd, (HMENU)303, hInst, NULL);
     
     // ========================================================================
-    // CARD 1 CONTROLS: Macro Name & Multiple Trigger Keys
+    // CARD 1 CONTROLS: Macro Name & Multiple Trigger Keys (y: 46..286)
     // ========================================================================
     HWND lbl_name = CreateWindowW(L"STATIC", L"Macro Name:", WS_CHILD | WS_VISIBLE, 28, 72, 120, 16, hwnd, NULL, hInst, NULL);
     SendMessageW(lbl_name, WM_SETFONT, (WPARAM)hFontSmallBold, TRUE);
@@ -1973,31 +1973,32 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
     g_add_edit_state.edit_name = CreateWindowW(L"EDIT", wname_init, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 28, 90, 310, 26, hwnd, NULL, hInst, NULL);
     SendMessageW(g_add_edit_state.edit_name, WM_SETFONT, (WPARAM)hFont, TRUE);
     
-    HWND lbl_trig = CreateWindowW(L"STATIC", L"Trigger Activation Keys (ANY of these triggers macro):", WS_CHILD | WS_VISIBLE, 28, 120, 320, 16, hwnd, NULL, hInst, NULL);
+    HWND lbl_trig = CreateWindowW(L"STATIC", L"Trigger Activation Keys (ANY of these triggers macro -- 6 visible per scroll, up to 32 triggers):", WS_CHILD | WS_VISIBLE, 28, 120, 580, 16, hwnd, NULL, hInst, NULL);
     SendMessageW(lbl_trig, WM_SETFONT, (WPARAM)hFontSmallBold, TRUE);
     
+    // Height 144px fits exactly 6 full items (6 x 24px = 144px) + WS_VSCROLL for unlimited triggers
     g_add_edit_state.list_triggers = CreateWindowW(
         L"LISTBOX", NULL, 
         WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOTIFY, 
-        28, 138, 310, 52, 
+        28, 138, 446, 144, 
         hwnd, (HMENU)103, hInst, NULL
     );
     SendMessageW(g_add_edit_state.list_triggers, WM_SETFONT, (WPARAM)g_theme_fonts.font_mono_small, TRUE);
     RefreshTriggerList(g_add_edit_state.list_triggers);
     
-    g_add_edit_state.btn_add_trigger = CreateWindowW(L"BUTTON", L"Add Trigger", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 350, 138, 124, 28, hwnd, (HMENU)101, hInst, NULL);
+    g_add_edit_state.btn_add_trigger = CreateWindowW(L"BUTTON", L"+ Add Trigger", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 486, 138, 126, 28, hwnd, (HMENU)101, hInst, NULL);
     SendMessageW(g_add_edit_state.btn_add_trigger, WM_SETFONT, (WPARAM)hFontBold, TRUE);
     
-    g_add_edit_state.btn_remove_trigger = CreateWindowW(L"BUTTON", L"Remove", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 484, 138, 128, 28, hwnd, (HMENU)102, hInst, NULL);
+    g_add_edit_state.btn_remove_trigger = CreateWindowW(L"BUTTON", L"Remove", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 486, 172, 126, 28, hwnd, (HMENU)102, hInst, NULL);
     SendMessageW(g_add_edit_state.btn_remove_trigger, WM_SETFONT, (WPARAM)hFont, TRUE);
     
     // ========================================================================
-    // CARD 2 CONTROLS: Action Sequence Pipeline & Action Composer
+    // CARD 2 CONTROLS: Action Sequence Pipeline & Action Composer (y: 294..524)
     // ========================================================================
     g_add_edit_state.list_actions = CreateWindowW(
         L"LISTBOX", NULL, 
         WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOTIFY, 
-        28, 222, 446, 114, 
+        28, 320, 446, 114, 
         hwnd, (HMENU)104, hInst, NULL
     );
     SendMessageW(g_add_edit_state.list_actions, WM_SETFONT, (WPARAM)g_theme_fonts.font_mono_data, TRUE);
@@ -2010,66 +2011,66 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
     g_add_edit_state.drag_target_idx = -1;
     g_add_edit_state.is_dragging = false;
     
-    g_add_edit_state.btn_move_up = CreateWindowW(L"BUTTON", L"Move Up", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 486, 222, 126, 25, hwnd, (HMENU)204, hInst, NULL);
+    g_add_edit_state.btn_move_up = CreateWindowW(L"BUTTON", L"Move Up", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 486, 320, 126, 25, hwnd, (HMENU)204, hInst, NULL);
     SendMessageW(g_add_edit_state.btn_move_up, WM_SETFONT, (WPARAM)hFont, TRUE);
     
-    g_add_edit_state.btn_move_down = CreateWindowW(L"BUTTON", L"Move Down", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 486, 251, 126, 25, hwnd, (HMENU)205, hInst, NULL);
+    g_add_edit_state.btn_move_down = CreateWindowW(L"BUTTON", L"Move Down", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 486, 349, 126, 25, hwnd, (HMENU)205, hInst, NULL);
     SendMessageW(g_add_edit_state.btn_move_down, WM_SETFONT, (WPARAM)hFont, TRUE);
     
-    g_add_edit_state.btn_del_action = CreateWindowW(L"BUTTON", L"Delete Step", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 486, 280, 126, 25, hwnd, (HMENU)206, hInst, NULL);
+    g_add_edit_state.btn_del_action = CreateWindowW(L"BUTTON", L"Delete Step", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 486, 378, 126, 25, hwnd, (HMENU)206, hInst, NULL);
     SendMessageW(g_add_edit_state.btn_del_action, WM_SETFONT, (WPARAM)hFont, TRUE);
     
-    g_add_edit_state.btn_clear_actions = CreateWindowW(L"BUTTON", L"Clear All", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 486, 309, 126, 25, hwnd, (HMENU)207, hInst, NULL);
+    g_add_edit_state.btn_clear_actions = CreateWindowW(L"BUTTON", L"Clear All", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 486, 407, 126, 25, hwnd, (HMENU)207, hInst, NULL);
     SendMessageW(g_add_edit_state.btn_clear_actions, WM_SETFONT, (WPARAM)hFont, TRUE);
     
     // Action Composer Row Controls (Stable 4-Column Architecture)
     // Column 1: Action Type Custom Cyber Dropdown
-    HWND lbl_act_type = CreateWindowW(L"STATIC", L"Action Type:", WS_CHILD | WS_VISIBLE, 28, 366, 144, 16, hwnd, NULL, hInst, NULL);
+    HWND lbl_act_type = CreateWindowW(L"STATIC", L"Action Type:", WS_CHILD | WS_VISIBLE, 28, 464, 144, 16, hwnd, NULL, hInst, NULL);
     SendMessageW(lbl_act_type, WM_SETFONT, (WPARAM)hFontSmallBold, TRUE);
     
     g_add_edit_state.current_action_type = ACTION_KEY_PRESS;
     g_add_edit_state.btn_action_type_dropdown = CreateWindowW(
         L"BUTTON", L"", 
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 
-        28, 384, 144, 28, 
+        28, 482, 144, 28, 
         hwnd, (HMENU)201, hInst, NULL
     );
     SendMessageW(g_add_edit_state.btn_action_type_dropdown, WM_SETFONT, (WPARAM)hFontBold, TRUE);
     
     // Column 2: Target Key / Input + Capture
-    g_add_edit_state.lbl_action_key = CreateWindowW(L"STATIC", L"Target Key / Input:", WS_CHILD | WS_VISIBLE, 178, 366, 130, 16, hwnd, NULL, hInst, NULL);
+    g_add_edit_state.lbl_action_key = CreateWindowW(L"STATIC", L"Target Key / Input:", WS_CHILD | WS_VISIBLE, 178, 464, 130, 16, hwnd, NULL, hInst, NULL);
     SendMessageW(g_add_edit_state.lbl_action_key, WM_SETFONT, (WPARAM)hFontSmallBold, TRUE);
     
-    g_add_edit_state.edit_action_key = CreateWindowW(L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 178, 384, 122, 28, hwnd, NULL, hInst, NULL);
+    g_add_edit_state.edit_action_key = CreateWindowW(L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 178, 482, 122, 28, hwnd, NULL, hInst, NULL);
     SendMessageW(g_add_edit_state.edit_action_key, WM_SETFONT, (WPARAM)hFont, TRUE);
     
-    g_add_edit_state.btn_capture_action = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 304, 384, 36, 28, hwnd, (HMENU)202, hInst, NULL);
+    g_add_edit_state.btn_capture_action = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 304, 482, 36, 28, hwnd, (HMENU)202, hInst, NULL);
     SendMessageW(g_add_edit_state.btn_capture_action, WM_SETFONT, (WPARAM)hFontBold, TRUE);
     
     // Column 3: Duration / Delay (ms)
-    g_add_edit_state.lbl_duration = CreateWindowW(L"STATIC", L"Duration / Delay:", WS_CHILD | WS_VISIBLE, 348, 366, 100, 16, hwnd, NULL, hInst, NULL);
+    g_add_edit_state.lbl_duration = CreateWindowW(L"STATIC", L"Duration / Delay:", WS_CHILD | WS_VISIBLE, 348, 464, 100, 16, hwnd, NULL, hInst, NULL);
     SendMessageW(g_add_edit_state.lbl_duration, WM_SETFONT, (WPARAM)hFontSmallBold, TRUE);
     
-    g_add_edit_state.edit_duration = CreateWindowW(L"EDIT", L"50", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER, 348, 384, 58, 28, hwnd, NULL, hInst, NULL);
+    g_add_edit_state.edit_duration = CreateWindowW(L"EDIT", L"50", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER, 348, 482, 58, 28, hwnd, NULL, hInst, NULL);
     SendMessageW(g_add_edit_state.edit_duration, WM_SETFONT, (WPARAM)hFont, TRUE);
     
-    g_add_edit_state.lbl_ms = CreateWindowW(L"STATIC", L"ms", WS_CHILD | WS_VISIBLE, 410, 388, 22, 20, hwnd, NULL, hInst, NULL);
+    g_add_edit_state.lbl_ms = CreateWindowW(L"STATIC", L"ms", WS_CHILD | WS_VISIBLE, 410, 486, 22, 20, hwnd, NULL, hInst, NULL);
     SendMessageW(g_add_edit_state.lbl_ms, WM_SETFONT, (WPARAM)hFontSmall, TRUE);
     
     // Column 4: Add Step Button
-    g_add_edit_state.btn_add_action = CreateWindowW(L"BUTTON", L"Add Step", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 440, 384, 172, 28, hwnd, (HMENU)203, hInst, NULL);
+    g_add_edit_state.btn_add_action = CreateWindowW(L"BUTTON", L"Add Step", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 440, 482, 172, 28, hwnd, (HMENU)203, hInst, NULL);
     SendMessageW(g_add_edit_state.btn_add_action, WM_SETFONT, (WPARAM)hFontBold, TRUE);
     
     UpdateActionComposerState();
     
     // ========================================================================
-    // CARD 3 CONTROLS: Execution Settings & Input Block
+    // CARD 3 CONTROLS: Execution Settings & Input Block (y: 532..684)
     // ========================================================================
     g_add_edit_state.chk_repeat = CreateWindowW(
         L"BUTTON", 
         L"Repeat while trigger key is held", 
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 
-        28, 460, 260, 24, 
+        28, 558, 260, 24, 
         hwnd, (HMENU)401, hInst, NULL
     );
     SendMessageW(g_add_edit_state.chk_repeat, WM_SETFONT, (WPARAM)hFont, TRUE);
@@ -2078,7 +2079,7 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
         L"STATIC", 
         L"Interval Delay:", 
         WS_CHILD | WS_VISIBLE, 
-        295, 462, 85, 20, 
+        295, 560, 85, 20, 
         hwnd, NULL, hInst, NULL
     );
     SendMessageW(g_add_edit_state.lbl_repeat_delay, WM_SETFONT, (WPARAM)hFontSmallBold, TRUE);
@@ -2089,7 +2090,7 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
         L"EDIT", 
         rep_delay_str, 
         WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER, 
-        382, 460, 55, 24, 
+        382, 558, 55, 24, 
         hwnd, NULL, hInst, NULL
     );
     SendMessageW(g_add_edit_state.edit_repeat_delay, WM_SETFONT, (WPARAM)hFont, TRUE);
@@ -2099,7 +2100,7 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
         L"STATIC", 
         L"ms", 
         WS_CHILD | WS_VISIBLE, 
-        441, 462, 25, 20, 
+        441, 560, 25, 20, 
         hwnd, NULL, hInst, NULL
     );
     SendMessageW(g_add_edit_state.lbl_repeat_ms, WM_SETFONT, (WPARAM)hFontSmall, TRUE);
@@ -2108,18 +2109,18 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
         L"BUTTON", 
         L"Block Original Input (Suppress trigger key from reaching game/apps)", 
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 
-        28, 490, 580, 24, 
+        28, 588, 580, 24, 
         hwnd, (HMENU)402, hInst, NULL
     );
     SendMessageW(g_add_edit_state.chk_block_input, WM_SETFONT, (WPARAM)hFont, TRUE);
     
     // ========================================================================
-    // FOOTER CONTROLS: Save & Cancel Buttons
+    // FOOTER CONTROLS: Save & Cancel Buttons (y: 700)
     // ========================================================================
     g_add_edit_state.btn_cancel = CreateWindowW(
         L"BUTTON", L"Cancel", 
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 
-        286, 616, 104, 38, 
+        286, 700, 104, 38, 
         hwnd, (HMENU)302, hInst, NULL
     );
     SendMessageW(g_add_edit_state.btn_cancel, WM_SETFONT, (WPARAM)hFont, TRUE);
@@ -2127,7 +2128,7 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
     g_add_edit_state.btn_save = CreateWindowW(
         L"BUTTON", L"SAVE CONFIGURATION", 
         WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 
-        402, 616, 210, 38, 
+        402, 700, 210, 38, 
         hwnd, (HMENU)301, hInst, NULL
     );
     SendMessageW(g_add_edit_state.btn_save, WM_SETFONT, (WPARAM)hFontBold, TRUE);

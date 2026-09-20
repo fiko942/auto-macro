@@ -24,11 +24,11 @@ This specification defines:
 ## 2. Multi-Trigger Architecture & Data Model
 
 ### 2.1 Multi-Trigger Data Structures (`c_src/common/types.h`)
-Each `HotkeyBinding` encapsulates an array of up to `MAX_TRIGGERS_PER_BINDING` (4) independent trigger key combinations, while the master application trigger supports up to `MAX_MASTER_TRIGGERS` (8):
+Each `HotkeyBinding` encapsulates an array of up to `MAX_TRIGGERS_PER_BINDING` (32) independent trigger key combinations, while the master application trigger supports up to `MAX_MASTER_TRIGGERS` (8):
 
 ```c
 #define MAX_BINDINGS 64
-#define MAX_TRIGGERS_PER_BINDING 4
+#define MAX_TRIGGERS_PER_BINDING 32
 #define MAX_MASTER_TRIGGERS 8
 #define MAX_KEY_NAME_LEN 32
 
@@ -36,7 +36,7 @@ typedef struct {
     char id[MAX_ID_LEN];
     char name[MAX_NAME_LEN];
     
-    // Multi-Trigger Array
+    // Multi-Trigger Array (Up to 32 triggers per macro)
     char trigger_keys[MAX_TRIGGERS_PER_BINDING][MAX_KEY_NAME_LEN];
     int trigger_count;
     
@@ -196,15 +196,15 @@ When the capture modal is active:
 - Inactive modifiers or pending keys display `[ PRESS KEY / MOUSE ]` in muted Gray `#5A6275`.
 
 ### 6.2 Bento Card 1: Multi-Trigger List & Dynamic Management
-- **Listbox Height:** Expanded to 58px with `WS_VSCROLL | LBS_OWNERDRAWFIXED | LBS_NOTIFY`.
+- **Listbox Height:** Expanded to 144px (fits exactly 6 full items simultaneously @ 24px each) with `WS_VSCROLL | LBS_OWNERDRAWFIXED | LBS_NOTIFY`.
 - **Owner-Drawn Rendering:** Custom `WM_DRAWITEM` draws:
   - `ICON_TARGET` vector icon.
-  - Numbered trigger index badge (`Trigger #1: ctrl+mouse_left`, `Trigger #2: numpad1`).
+  - Numbered trigger index badge (`Trigger #1: ctrl+mouse_left`, `Trigger #2: numpad1`, etc.).
   - Active selection background (`#00F0FF` cyan border, `#0A2540` fill).
 - **Controls:**
-  - `+ Add Trigger` button: Appends up to 8 triggers with automatic duplication prevention.
+  - `+ Add Trigger` button: Appends up to 32 triggers with automatic duplication prevention.
   - `- Remove Trigger` button: Deletes selected trigger index while keeping at least one trigger active.
-  - `[ Re-Capture ]` button: Launches interactive HUD for the selected trigger.
+  - Clean non-sticky modifier reset upon capture completion.
 
 ### 6.3 Main Dashboard Bento Card Display
 The primary macro card renders all configured triggers separated by high-contrast `/` badges:

@@ -35,7 +35,7 @@ typedef struct {
     bool is_master_toggle;      // Is this a master toggle key
 } FastTrigger;
 
-#define MAX_FAST_TRIGGERS 256
+#define MAX_FAST_TRIGGERS 2048
 
 // Callback signatures
 typedef void (*MacroTriggerCallback)(int binding_index, bool is_down);

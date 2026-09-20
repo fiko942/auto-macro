@@ -25,46 +25,78 @@ static InputCaptureCallback g_capture_callback = NULL;
 static volatile uint8_t g_hook_modifiers = 0;
 
 static void UpdateModifierState(WORD vk, bool is_down) {
-    uint8_t flag = 0;
-    if (vk == VK_CONTROL || vk == VK_LCONTROL || vk == VK_RCONTROL) flag = MODIFIER_CTRL;
-    else if (vk == VK_SHIFT || vk == VK_LSHIFT || vk == VK_RSHIFT) flag = MODIFIER_SHIFT;
-    else if (vk == VK_MENU || vk == VK_LMENU || vk == VK_RMENU) flag = MODIFIER_ALT;
-    else if (vk == VK_LWIN || vk == VK_RWIN) flag = MODIFIER_WIN;
-
-    if (flag) {
-        if (is_down) {
-            g_hook_modifiers |= flag;
-        } else {
-            bool still_down = false;
-            if (flag == MODIFIER_CTRL) {
-                still_down = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) ||
-                             ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0) ||
-                             ((GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0);
-            } else if (flag == MODIFIER_SHIFT) {
-                still_down = ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) ||
-                             ((GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0) ||
-                             ((GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0);
-            } else if (flag == MODIFIER_ALT) {
-                still_down = ((GetAsyncKeyState(VK_MENU) & 0x8000) != 0) ||
-                             ((GetAsyncKeyState(VK_LMENU) & 0x8000) != 0) ||
-                             ((GetAsyncKeyState(VK_RMENU) & 0x8000) != 0);
-            } else if (flag == MODIFIER_WIN) {
-                still_down = ((GetAsyncKeyState(VK_LWIN) & 0x8000) != 0) ||
-                             ((GetAsyncKeyState(VK_RWIN) & 0x8000) != 0);
+    if (is_down) {
+        if (vk == VK_CONTROL || vk == VK_LCONTROL || vk == VK_RCONTROL) g_hook_modifiers |= MODIFIER_CTRL;
+        else if (vk == VK_SHIFT || vk == VK_LSHIFT || vk == VK_RSHIFT) g_hook_modifiers |= MODIFIER_SHIFT;
+        else if (vk == VK_MENU || vk == VK_LMENU || vk == VK_RMENU) g_hook_modifiers |= MODIFIER_ALT;
+        else if (vk == VK_LWIN || vk == VK_RWIN) g_hook_modifiers |= MODIFIER_WIN;
+    } else {
+        if (vk == VK_CONTROL || vk == VK_LCONTROL || vk == VK_RCONTROL) {
+            bool lctrl = (vk != VK_LCONTROL && vk != VK_CONTROL) && ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0);
+            bool rctrl = (vk != VK_RCONTROL && vk != VK_CONTROL) && ((GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0);
+            if (!lctrl && !rctrl) {
+                g_hook_modifiers &= ~MODIFIER_CTRL;
             }
-            if (!still_down) {
-                g_hook_modifiers &= ~flag;
+        } else if (vk == VK_SHIFT || vk == VK_LSHIFT || vk == VK_RSHIFT) {
+            bool lshift = (vk != VK_LSHIFT && vk != VK_SHIFT) && ((GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0);
+            bool rshift = (vk != VK_RSHIFT && vk != VK_SHIFT) && ((GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0);
+            if (!lshift && !rshift) {
+                g_hook_modifiers &= ~MODIFIER_SHIFT;
+            }
+        } else if (vk == VK_MENU || vk == VK_LMENU || vk == VK_RMENU) {
+            bool lalt = (vk != VK_LMENU && vk != VK_MENU) && ((GetAsyncKeyState(VK_LMENU) & 0x8000) != 0);
+            bool ralt = (vk != VK_RMENU && vk != VK_MENU) && ((GetAsyncKeyState(VK_RMENU) & 0x8000) != 0);
+            if (!lalt && !ralt) {
+                g_hook_modifiers &= ~MODIFIER_ALT;
+            }
+        } else if (vk == VK_LWIN || vk == VK_RWIN) {
+            bool lwin = (vk != VK_LWIN) && ((GetAsyncKeyState(VK_LWIN) & 0x8000) != 0);
+            bool rwin = (vk != VK_RWIN) && ((GetAsyncKeyState(VK_RWIN) & 0x8000) != 0);
+            if (!lwin && !rwin) {
+                g_hook_modifiers &= ~MODIFIER_WIN;
             }
         }
     }
 }
 
 uint8_t InputHook_GetLiveModifiers(void) {
-    uint8_t mods = g_hook_modifiers;
-    if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) || (GetAsyncKeyState(VK_LCONTROL) & 0x8000) || (GetAsyncKeyState(VK_RCONTROL) & 0x8000)) mods |= MODIFIER_CTRL;
-    if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) || (GetAsyncKeyState(VK_LSHIFT) & 0x8000) || (GetAsyncKeyState(VK_RSHIFT) & 0x8000))   mods |= MODIFIER_SHIFT;
-    if ((GetAsyncKeyState(VK_MENU) & 0x8000) || (GetAsyncKeyState(VK_LMENU) & 0x8000) || (GetAsyncKeyState(VK_RMENU) & 0x8000))    mods |= MODIFIER_ALT;
-    if ((GetAsyncKeyState(VK_LWIN) & 0x8000) || (GetAsyncKeyState(VK_RWIN) & 0x8000)) mods |= MODIFIER_WIN;
+    uint8_t mods = 0;
+    bool ctrl_down = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) ||
+                     ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0) ||
+                     ((GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0);
+    if (ctrl_down) {
+        mods |= MODIFIER_CTRL;
+    } else {
+        g_hook_modifiers &= ~MODIFIER_CTRL;
+    }
+
+    bool shift_down = ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) ||
+                      ((GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0) ||
+                      ((GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0);
+    if (shift_down) {
+        mods |= MODIFIER_SHIFT;
+    } else {
+        g_hook_modifiers &= ~MODIFIER_SHIFT;
+    }
+
+    bool alt_down = ((GetAsyncKeyState(VK_MENU) & 0x8000) != 0) ||
+                    ((GetAsyncKeyState(VK_LMENU) & 0x8000) != 0) ||
+                    ((GetAsyncKeyState(VK_RMENU) & 0x8000) != 0);
+    if (alt_down) {
+        mods |= MODIFIER_ALT;
+    } else {
+        g_hook_modifiers &= ~MODIFIER_ALT;
+    }
+
+    bool win_down = ((GetAsyncKeyState(VK_LWIN) & 0x8000) != 0) ||
+                    ((GetAsyncKeyState(VK_RWIN) & 0x8000) != 0);
+    if (win_down) {
+        mods |= MODIFIER_WIN;
+    } else {
+        g_hook_modifiers &= ~MODIFIER_WIN;
+    }
+
+    mods |= g_hook_modifiers;
     return mods;
 }
 
@@ -479,12 +511,22 @@ void InputHook_SetMasterToggleCallback(MasterToggleCallback callback) {
 void InputHook_StartCapture(InputCaptureCallback callback, bool allow_escape) {
     g_capture_callback = callback;
     g_bAllowEscapeCapture = allow_escape;
+    g_hook_modifiers = 0;
+    if (((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) || ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0)) g_hook_modifiers |= MODIFIER_CTRL;
+    if (((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) || ((GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0))     g_hook_modifiers |= MODIFIER_SHIFT;
+    if (((GetAsyncKeyState(VK_MENU) & 0x8000) != 0) || ((GetAsyncKeyState(VK_LMENU) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RMENU) & 0x8000) != 0))       g_hook_modifiers |= MODIFIER_ALT;
+    if (((GetAsyncKeyState(VK_LWIN) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RWIN) & 0x8000) != 0))                                           g_hook_modifiers |= MODIFIER_WIN;
     g_bCapturing = true;
 }
 
 void InputHook_StopCapture(void) {
     g_bCapturing = false;
     g_capture_callback = NULL;
+    g_hook_modifiers = 0;
+    if (((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) || ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0)) g_hook_modifiers |= MODIFIER_CTRL;
+    if (((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) || ((GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0))     g_hook_modifiers |= MODIFIER_SHIFT;
+    if (((GetAsyncKeyState(VK_MENU) & 0x8000) != 0) || ((GetAsyncKeyState(VK_LMENU) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RMENU) & 0x8000) != 0))       g_hook_modifiers |= MODIFIER_ALT;
+    if (((GetAsyncKeyState(VK_LWIN) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RWIN) & 0x8000) != 0))                                           g_hook_modifiers |= MODIFIER_WIN;
 }
 
 bool InputHook_IsCapturing(void) {

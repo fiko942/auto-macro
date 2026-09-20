@@ -27,7 +27,8 @@ docs/superpowers/
     ├── 2026-09-20-ui-smooth-animations.md             # Smooth UI transitions
     ├── 2026-09-20-ui-visual-audit-and-native-polish.md # Visual polish audit
     ├── 2026-09-21-native-c-rewrite-and-vector-icon-engine.md # Complete C rewrite & Vector icon engine
-    └── 2026-09-21-multi-trigger-and-modifier-combos.md # Multi-trigger & modifier combos implementation plan
+    ├── 2026-09-21-multi-trigger-and-modifier-combos.md # Multi-trigger & modifier combos implementation plan
+    └── 2026-09-21-unlimited-triggers-and-modifier-release-fix.md # Unlimited triggers (32/macro), 6-row view & modifier fix
 ```
 
 ---
@@ -40,8 +41,9 @@ docs/superpowers/
    - Atomic modifier tracking (`g_hook_modifiers`) with 0.40 ns trigger lookup overhead.
 
 2. **Compound Multi-Trigger & Modifier Combination Engine**:
-   - Supports up to 8 independent triggers per macro profile (`triggers[MAX_TRIGGERS_PER_MACRO]`).
-   - Seamless modifier combo capture (`Ctrl+Left Click`, `Win+Left Click`, `Ctrl+Alt+X`, etc.) with Start Menu suppression during capture.
+   - Supports up to 32 independent triggers per macro profile (`MAX_TRIGGERS_PER_BINDING = 32`) and 2048 global fast triggers.
+   - 6-row scrollable Card 1 Bento listbox with `WS_VSCROLL` for managing multiple triggers.
+   - Seamless modifier combo capture (`Ctrl+Left Click`, `Win+Left Click`, `Ctrl+Alt+X`, etc.) with Start Menu suppression during capture and guaranteed non-sticky release lifecycle.
    - Real-time animated HUD modifier chip rendering.
 
 3. **100% Pure GDI Vector Icon Engine**:
