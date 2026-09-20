@@ -60,43 +60,11 @@ static void UpdateModifierState(WORD vk, bool is_down) {
 }
 
 uint8_t InputHook_GetLiveModifiers(void) {
-    uint8_t mods = 0;
-    bool ctrl_down = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) ||
-                     ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0) ||
-                     ((GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0);
-    if (ctrl_down) {
-        mods |= MODIFIER_CTRL;
-    } else {
-        g_hook_modifiers &= ~MODIFIER_CTRL;
-    }
-
-    bool shift_down = ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) ||
-                      ((GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0) ||
-                      ((GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0);
-    if (shift_down) {
-        mods |= MODIFIER_SHIFT;
-    } else {
-        g_hook_modifiers &= ~MODIFIER_SHIFT;
-    }
-
-    bool alt_down = ((GetAsyncKeyState(VK_MENU) & 0x8000) != 0) ||
-                    ((GetAsyncKeyState(VK_LMENU) & 0x8000) != 0) ||
-                    ((GetAsyncKeyState(VK_RMENU) & 0x8000) != 0);
-    if (alt_down) {
-        mods |= MODIFIER_ALT;
-    } else {
-        g_hook_modifiers &= ~MODIFIER_ALT;
-    }
-
-    bool win_down = ((GetAsyncKeyState(VK_LWIN) & 0x8000) != 0) ||
-                    ((GetAsyncKeyState(VK_RWIN) & 0x8000) != 0);
-    if (win_down) {
-        mods |= MODIFIER_WIN;
-    } else {
-        g_hook_modifiers &= ~MODIFIER_WIN;
-    }
-
-    mods |= g_hook_modifiers;
+    uint8_t mods = g_hook_modifiers;
+    if (((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) || ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0)) mods |= MODIFIER_CTRL;
+    if (((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) || ((GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0))     mods |= MODIFIER_SHIFT;
+    if (((GetAsyncKeyState(VK_MENU) & 0x8000) != 0) || ((GetAsyncKeyState(VK_LMENU) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RMENU) & 0x8000) != 0))       mods |= MODIFIER_ALT;
+    if (((GetAsyncKeyState(VK_LWIN) & 0x8000) != 0) || ((GetAsyncKeyState(VK_RWIN) & 0x8000) != 0))                                           mods |= MODIFIER_WIN;
     return mods;
 }
 

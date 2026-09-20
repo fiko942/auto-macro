@@ -187,6 +187,37 @@ int main() {
         return 1;
     }
 
+    // Verify Keyboard Modifiers Combos: ctrl+c, ctrl+shift+c
+    FastTrigger ft_ctrl_c;
+    if (ParseTriggerString("ctrl+c", &ft_ctrl_c) &&
+        ft_ctrl_c.vk == 0x43 &&
+        ft_ctrl_c.modifiers_mask == MODIFIER_CTRL) {
+        printf("  -> ParseTriggerString('ctrl+c'): PASSED (VK=0x%02X, Mods=0x%02X)\n", ft_ctrl_c.vk, ft_ctrl_c.modifiers_mask);
+    } else {
+        printf("  -> ParseTriggerString('ctrl+c') check FAILED\n");
+        return 1;
+    }
+
+    FastTrigger ft_ctrl_shift_c;
+    if (ParseTriggerString("ctrl+shift+c", &ft_ctrl_shift_c) &&
+        ft_ctrl_shift_c.vk == 0x43 &&
+        ft_ctrl_shift_c.modifiers_mask == (MODIFIER_CTRL | MODIFIER_SHIFT)) {
+        printf("  -> ParseTriggerString('ctrl+shift+c'): PASSED\n");
+    } else {
+        printf("  -> ParseTriggerString('ctrl+shift+c') check FAILED\n");
+        return 1;
+    }
+
+    // Verify BuildComboString for Ctrl + C
+    char combo_ctrl_c[64];
+    BuildComboString(MODIFIER_CTRL, "c", combo_ctrl_c, sizeof(combo_ctrl_c));
+    if (strcmp(combo_ctrl_c, "ctrl+c") == 0) {
+        printf("  -> BuildComboString(CTRL, 'c'): PASSED (%s)\n", combo_ctrl_c);
+    } else {
+        printf("  -> BuildComboString(CTRL, 'c') check FAILED (got %s)\n", combo_ctrl_c);
+        return 1;
+    }
+
     // Verify BuildComboString
     char combo_test[64];
     BuildComboString(MODIFIER_CTRL | MODIFIER_ALT, "mouse_left", combo_test, sizeof(combo_test));
