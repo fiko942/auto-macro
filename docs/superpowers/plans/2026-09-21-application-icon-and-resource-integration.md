@@ -39,20 +39,25 @@ The user-supplied cyberpunk glowing shield emblem was converted into a full stan
 ### 2.3 Build Script Automation (`build.bat`)
 `build.bat` automatically detects resource compilers (`llvm-rc.exe`, `windres.exe`, or `rc.exe`), compiles `c_src\app.rc` into `c_src\app.res`, and links it directly into `TobelsoftMacro.exe` using Clang `-O3 -mwindows`.
 
-### 2.4 Win32 Window Class & System Tray Binding
+### 2.4 Win32 Window Class, System Tray, & In-App UI Header Binding
 - `c_src/ui/main_window.c`:
   - `wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APP_ICON));`
   - `wc.hIconSm = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_APP_ICON), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);`
   - `SendMessageW(hwnd, WM_SETICON, ICON_BIG, (LPARAM)wc.hIcon);`
   - `SendMessageW(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)wc.hIconSm);`
   - System Tray (`NOTIFYICONDATAW`) initializes with `hIconSm`.
+  - Custom frameless title bar header (`DrawCustomTitleBar`) loads `IDI_APP_ICON` at 16x16 and renders via `DrawIconEx` with vector fallback.
+  - Sidebar brand badge loads `IDI_APP_ICON` at 32x32 and renders via `DrawIconEx`.
 - `c_src/ui/ui_dialogs.c`:
   - `AddEditDialogClass` and `CaptureDialogClass` inherit `IDI_APP_ICON`.
+  - Add/Edit Macro modal dialog title bar header loads and renders `IDI_APP_ICON` at 16x16.
+  - DirectInput Capture HUD modal overlay header loads and renders `IDI_APP_ICON` at 14x14.
 
 ---
 
 ## 3. Verification & Validation
 
-1. **Binary Resource Extraction:** Verified via Win32 `FindResourceW(h, 101, RT_GROUP_ICON)` returning valid resource pointer `0x307e1e8`.
+1. **Binary Resource Extraction:** Verified via Win32 `FindResourceW(h, 101, RT_GROUP_ICON)` returning valid resource pointer.
 2. **Build Verification:** `build.bat` compiles cleanly with `llvm-rc` and `clang.exe`.
-3. **README.md Brand Showcase:** Top banner updated with centered logo, modern badges, and comprehensive documentation.
+3. **In-App Visual Rendering:** Verified title bar header, sidebar brand card, and dialog headers all render the official shield icon crisply.
+4. **README.md Brand Showcase:** Top banner updated with centered logo, modern badges, and comprehensive documentation.

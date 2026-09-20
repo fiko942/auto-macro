@@ -52,8 +52,14 @@ typedef enum {
 } IconId;
 
 // ============================================================================
-// CORE VECTOR ICON DRAWING API
+// CORE VECTOR ICON DRAWING API (GDI+ SUBPIXEL ANTI-ALIASED ENGINE)
 // ============================================================================
+
+/**
+ * Initialize and shutdown GDI+ vector graphics subsystem.
+ */
+void UiIcons_Init(void);
+void UiIcons_Cleanup(void);
 
 /**
  * Draw a vector icon at specific top-left coordinates (x, y) with bounding size (pixels).

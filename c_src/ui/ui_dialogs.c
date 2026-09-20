@@ -117,7 +117,17 @@ static LRESULT CALLBACK CaptureWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             DeleteObject(div_pen);
             
             // Titlebar Icon & Text
-            DrawVectorIcon(hdc, ICON_BOLT, 14, 9, 14, COLOR_NEON_CYAN);
+            static HICON s_hud_icon = NULL;
+            static bool s_hud_icon_loaded = false;
+            if (!s_hud_icon_loaded) {
+                s_hud_icon = (HICON)LoadImageW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON, 14, 14, LR_DEFAULTCOLOR);
+                s_hud_icon_loaded = true;
+            }
+            if (s_hud_icon) {
+                DrawIconEx(hdc, 14, 9, s_hud_icon, 14, 14, 0, NULL, DI_NORMAL);
+            } else {
+                DrawVectorIcon(hdc, ICON_BOLT, 14, 9, 14, COLOR_NEON_CYAN);
+            }
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, COLOR_NEON_CYAN);
             SelectObject(hdc, g_theme_fonts.font_mono_small);
@@ -1784,7 +1794,17 @@ static LRESULT CALLBACK AddEditWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             DeleteObject(div_pen);
             
             // Titlebar Icon & Header Text
-            DrawVectorIcon(hdc, ICON_BOLT, 16, 11, 16, COLOR_NEON_CYAN);
+            static HICON s_dlg_icon = NULL;
+            static bool s_dlg_icon_loaded = false;
+            if (!s_dlg_icon_loaded) {
+                s_dlg_icon = (HICON)LoadImageW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+                s_dlg_icon_loaded = true;
+            }
+            if (s_dlg_icon) {
+                DrawIconEx(hdc, 16, 11, s_dlg_icon, 16, 16, 0, NULL, DI_NORMAL);
+            } else {
+                DrawVectorIcon(hdc, ICON_BOLT, 16, 11, 16, COLOR_NEON_CYAN);
+            }
             SetBkMode(hdc, TRANSPARENT);
             SetTextColor(hdc, COLOR_TEXT_PRIMARY);
             SelectObject(hdc, g_theme_fonts.font_header);

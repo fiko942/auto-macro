@@ -1,5 +1,6 @@
 #include "theme.h"
 #include "animation.h"
+#include "ui_icons.h"
 #include <dwmapi.h>
 #include <uxtheme.h>
 #include <stdio.h>
@@ -69,9 +70,13 @@ void Theme_Init(void) {
 
     g_theme_fonts.font_keycap = g_theme_fonts.font_mono_keycap;
     g_theme_fonts.font_brand = g_theme_fonts.font_title;
+    
+    // Initialize GDI+ Subpixel Vector Icon Engine
+    UiIcons_Init();
 }
 
 void Theme_Cleanup(void) {
+    UiIcons_Cleanup();
     if (g_theme_fonts.font_brand_hud) DeleteObject(g_theme_fonts.font_brand_hud);
     if (g_theme_fonts.font_title) DeleteObject(g_theme_fonts.font_title);
     if (g_theme_fonts.font_header) DeleteObject(g_theme_fonts.font_header);

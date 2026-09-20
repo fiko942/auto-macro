@@ -52,7 +52,7 @@ if defined RC_BIN (
 )
 
 set SRC_FILES=c_src\main.c c_src\common\types.c c_src\common\utils.c c_src\common\cJSON.c c_src\storage\config_manager.c c_src\core\input_sender.c c_src\core\input_hook.c c_src\core\macro_engine.c c_src\ui\animation.c c_src\ui\theme.c c_src\ui\ui_icons.c c_src\ui\ui_dialogs.c c_src\ui\main_window.c %RES_OBJ%
-set LIBS=-luser32 -lgdi32 -lmsimg32 -lwinmm -lcomctl32 -lcomdlg32 -lshell32 -lole32 -ldwmapi -luxtheme
+set LIBS=-luser32 -lgdi32 -lmsimg32 -lwinmm -lcomctl32 -lcomdlg32 -lshell32 -lole32 -ldwmapi -luxtheme -lgdiplus
 set CFLAGS=-O3 -Wall -Wextra -Wno-unused-parameter -mwindows
 
 echo [INFO] Compiling and linking TobelsoftMacro.exe...

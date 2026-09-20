@@ -170,7 +170,17 @@ static void DrawCustomTitleBar(HDC hdc, int width) {
     
     // Titlebar Brand Icon & Text
     SetBkMode(hdc, TRANSPARENT);
-    DrawVectorIcon(hdc, ICON_BOLT, 14, (TITLEBAR_HEIGHT - 16) / 2, 16, COLOR_NEON_CYAN);
+    static HICON s_title_icon = NULL;
+    static bool s_title_icon_loaded = false;
+    if (!s_title_icon_loaded) {
+        s_title_icon = (HICON)LoadImageW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+        s_title_icon_loaded = true;
+    }
+    if (s_title_icon) {
+        DrawIconEx(hdc, 14, (TITLEBAR_HEIGHT - 16) / 2, s_title_icon, 16, 16, 0, NULL, DI_NORMAL);
+    } else {
+        DrawVectorIcon(hdc, ICON_BOLT, 14, (TITLEBAR_HEIGHT - 16) / 2, 16, COLOR_NEON_CYAN);
+    }
     
     SetTextColor(hdc, COLOR_TEXT_PRIMARY);
     SelectObject(hdc, g_theme_fonts.font_body_bold);
@@ -240,10 +250,23 @@ static void DrawSidebar(HDC hdc, int width, int height) {
     RECT brand_card = { 16, top_y, width - 16, top_y + 64 };
     DrawRoundedRect(hdc, &brand_card, 8, COLOR_BG_CARD, COLOR_BORDER_SUBTLE, 1);
     
-    // Left Emblem Badge with Vector Bolt
+    // Left Emblem Badge with Official App Emblem (or Smooth Vector Bolt fallback)
     RECT emb_rc = { brand_card.left + 10, brand_card.top + 10, brand_card.left + 54, brand_card.bottom - 10 };
     DrawRoundedRect(hdc, &emb_rc, 6, COLOR_NEON_INDIGO_DIM, COLOR_NEON_CYAN, 1);
-    DrawVectorIconCentered(hdc, ICON_BOLT, &emb_rc, 22, COLOR_NEON_CYAN);
+    
+    static HICON s_brand_icon = NULL;
+    static bool s_brand_icon_loaded = false;
+    if (!s_brand_icon_loaded) {
+        s_brand_icon = (HICON)LoadImageW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON, 32, 32, LR_DEFAULTCOLOR);
+        s_brand_icon_loaded = true;
+    }
+    if (s_brand_icon) {
+        int icon_x = emb_rc.left + ((emb_rc.right - emb_rc.left) - 32) / 2;
+        int icon_y = emb_rc.top + ((emb_rc.bottom - emb_rc.top) - 32) / 2;
+        DrawIconEx(hdc, icon_x, icon_y, s_brand_icon, 32, 32, 0, NULL, DI_NORMAL);
+    } else {
+        DrawVectorIconCentered(hdc, ICON_BOLT, &emb_rc, 22, COLOR_NEON_CYAN);
+    }
     
     // Brand Name & Version Tag
     SetTextColor(hdc, COLOR_TEXT_PRIMARY);

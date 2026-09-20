@@ -7,6 +7,146 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+#ifndef WINGDIPAPI
+#define WINGDIPAPI __stdcall
+#endif
+
+// ============================================================================
+// GDI+ FLAT C API DEFINITIONS & TYPES
+// High-performance sub-pixel anti-aliased vector rendering engine for Win32
+// ============================================================================
+typedef DWORD ARGB;
+typedef float REAL;
+
+typedef enum SmoothingMode {
+    SmoothingModeInvalid     = -1,
+    SmoothingModeDefault     = 0,
+    SmoothingModeHighSpeed   = 1,
+    SmoothingModeHighQuality = 2,
+    SmoothingModeNone        = 3,
+    SmoothingModeAntiAlias   = 4
+} SmoothingMode;
+
+typedef enum PixelOffsetMode {
+    PixelOffsetModeInvalid     = -1,
+    PixelOffsetModeDefault     = 0,
+    PixelOffsetModeHighSpeed   = 1,
+    PixelOffsetModeHighQuality = 2,
+    PixelOffsetModeNone        = 3,
+    PixelOffsetModeHalf        = 4
+} PixelOffsetMode;
+
+typedef enum LineCap {
+    LineCapFlat        = 0,
+    LineCapSquare      = 1,
+    LineCapRound       = 2,
+    LineCapTriangle    = 3
+} LineCap;
+
+typedef enum LineJoin {
+    LineJoinMiter        = 0,
+    LineJoinBevel        = 1,
+    LineJoinRound        = 2,
+    LineJoinMiterClipped = 3
+} LineJoin;
+
+typedef enum FillMode {
+    FillModeAlternate = 0,
+    FillModeWinding   = 1
+} FillMode;
+
+typedef enum GpUnit {
+    UnitWorld      = 0,
+    UnitDisplay    = 1,
+    UnitPixel      = 2,
+    UnitPoint      = 3,
+    UnitInch       = 4,
+    UnitDocument   = 5,
+    UnitMillimeter = 6
+} GpUnit;
+
+typedef struct PointF {
+    REAL X;
+    REAL Y;
+} PointF;
+
+typedef struct GdiplusStartupInput {
+    UINT32 GdiplusVersion;
+    void *DebugEventCallback;
+    BOOL SuppressBackgroundThread;
+    BOOL SuppressExternalCodecs;
+} GdiplusStartupInput;
+
+typedef void GpGraphics;
+typedef void GpPen;
+typedef void GpBrush;
+typedef void GpSolidFill;
+typedef void GpPath;
+
+// Flat GDI+ API prototypes
+int WINGDIPAPI GdiplusStartup(ULONG_PTR *token, const GdiplusStartupInput *input, void *output);
+void WINGDIPAPI GdiplusShutdown(ULONG_PTR token);
+
+int WINGDIPAPI GdipCreateFromHDC(HDC hdc, GpGraphics **graphics);
+int WINGDIPAPI GdipDeleteGraphics(GpGraphics *graphics);
+int WINGDIPAPI GdipSetSmoothingMode(GpGraphics *graphics, SmoothingMode smoothingMode);
+int WINGDIPAPI GdipSetPixelOffsetMode(GpGraphics *graphics, PixelOffsetMode pixelOffsetMode);
+
+int WINGDIPAPI GdipCreatePen1(ARGB color, REAL width, GpUnit unit, GpPen **pen);
+int WINGDIPAPI GdipDeletePen(GpPen *pen);
+int WINGDIPAPI GdipSetPenLineJoin(GpPen *pen, LineJoin lineJoin);
+int WINGDIPAPI GdipSetPenStartCap(GpPen *pen, LineCap startCap);
+int WINGDIPAPI GdipSetPenEndCap(GpPen *pen, LineCap endCap);
+
+int WINGDIPAPI GdipCreateSolidFill(ARGB color, GpSolidFill **brush);
+int WINGDIPAPI GdipDeleteBrush(GpBrush *brush);
+
+int WINGDIPAPI GdipDrawLine(GpGraphics *graphics, GpPen *pen, REAL x1, REAL y1, REAL x2, REAL y2);
+int WINGDIPAPI GdipDrawLines(GpGraphics *graphics, GpPen *pen, const PointF *points, INT count);
+int WINGDIPAPI GdipDrawPolygon(GpGraphics *graphics, GpPen *pen, const PointF *points, INT count);
+int WINGDIPAPI GdipFillPolygon(GpGraphics *graphics, GpBrush *brush, const PointF *points, INT count, FillMode fillMode);
+int WINGDIPAPI GdipDrawEllipse(GpGraphics *graphics, GpPen *pen, REAL x, REAL y, REAL width, REAL height);
+int WINGDIPAPI GdipFillEllipse(GpGraphics *graphics, GpBrush *brush, REAL x, REAL y, REAL width, REAL height);
+int WINGDIPAPI GdipDrawArc(GpGraphics *graphics, GpPen *pen, REAL x, REAL y, REAL width, REAL height, REAL startAngle, REAL sweepAngle);
+int WINGDIPAPI GdipDrawRectangle(GpGraphics *graphics, GpPen *pen, REAL x, REAL y, REAL width, REAL height);
+int WINGDIPAPI GdipFillRectangle(GpGraphics *graphics, GpBrush *brush, REAL x, REAL y, REAL width, REAL height);
+
+int WINGDIPAPI GdipCreatePath(FillMode fillMode, GpPath **path);
+int WINGDIPAPI GdipDeletePath(GpPath *path);
+int WINGDIPAPI GdipAddPathArc(GpPath *path, REAL x, REAL y, REAL width, REAL height, REAL startAngle, REAL sweepAngle);
+int WINGDIPAPI GdipClosePathFigure(GpPath *path);
+int WINGDIPAPI GdipDrawPath(GpGraphics *graphics, GpPen *pen, GpPath *path);
+
+// ============================================================================
+// LIFECYCLE MANAGEMENT
+// ============================================================================
+static ULONG_PTR s_gdiplus_token = 0;
+static bool s_gdiplus_ready = false;
+
+void UiIcons_Init(void) {
+    if (!s_gdiplus_ready) {
+        GdiplusStartupInput input = { 1, NULL, FALSE, FALSE };
+        if (GdiplusStartup(&s_gdiplus_token, &input, NULL) == 0) {
+            s_gdiplus_ready = true;
+        }
+    }
+}
+
+void UiIcons_Cleanup(void) {
+    if (s_gdiplus_ready) {
+        GdiplusShutdown(s_gdiplus_token);
+        s_gdiplus_token = 0;
+        s_gdiplus_ready = false;
+    }
+}
+
+static inline ARGB ColorrefToARGB(COLORREF col, BYTE alpha) {
+    return ((ARGB)alpha << 24) |
+           ((ARGB)GetRValue(col) << 16) |
+           ((ARGB)GetGValue(col) << 8) |
+           ((ARGB)GetBValue(col));
+}
+
 // ============================================================================
 // HELPER: ACTION TYPE TO VECTOR ICON MAPPING
 // ============================================================================
@@ -23,229 +163,236 @@ IconId GetActionTypeIcon(ActionType type) {
 }
 
 // ============================================================================
-// CORE VECTOR ICON DRAWING ENGINE (PURE WIN32 GDI GEOMETRY)
+// CORE VECTOR ICON DRAWING ENGINE (GDI+ ANTI-ALIASED SUBPIXEL VECTOR)
 // ============================================================================
 void DrawVectorIcon(HDC hdc, IconId icon, int x, int y, int size, COLORREF color) {
-    if (icon == ICON_NONE || size <= 2) return;
+    if (icon == ICON_NONE || size <= 2 || !hdc) return;
 
-    int stroke = (size >= 32) ? 3 : ((size >= 15) ? 2 : 1);
-    
-    HPEN pen = CreatePen(PS_SOLID, stroke, color);
-    HBRUSH fill_brush = CreateSolidBrush(color);
-    HGDIOBJ old_pen = SelectObject(hdc, pen);
-    HGDIOBJ old_brush = SelectObject(hdc, GetStockObject(NULL_BRUSH));
+    if (!s_gdiplus_ready) {
+        UiIcons_Init();
+    }
+
+    GpGraphics *gfx = NULL;
+    if (GdipCreateFromHDC(hdc, &gfx) != 0 || !gfx) return;
+
+    // Enable high-quality anti-aliasing
+    GdipSetSmoothingMode(gfx, SmoothingModeAntiAlias);
+    GdipSetPixelOffsetMode(gfx, PixelOffsetModeHalf);
+
+    float stroke_w = (size >= 32) ? 2.5f : ((size >= 20) ? 1.8f : 1.4f);
+    if (stroke_w < 1.2f) stroke_w = 1.2f;
+
+    ARGB argb = ColorrefToARGB(color, 255);
+
+    GpPen *pen = NULL;
+    GdipCreatePen1(argb, stroke_w, UnitPixel, &pen);
+    if (pen) {
+        GdipSetPenLineJoin(pen, LineJoinRound);
+        GdipSetPenStartCap(pen, LineCapRound);
+        GdipSetPenEndCap(pen, LineCapRound);
+    }
+
+    GpSolidFill *fill = NULL;
+    GdipCreateSolidFill(argb, &fill);
+
+    float fx = (float)x;
+    float fy = (float)y;
+    float fs = (float)size;
 
     switch (icon) {
         case ICON_BOLT: {
-            // Cyberpunk sharp lightning bolt (solid filled)
-            SelectObject(hdc, fill_brush);
-            POINT pts[7] = {
-                { x + (int)(size * 0.58f), y + (int)(size * 0.05f) },
-                { x + (int)(size * 0.20f), y + (int)(size * 0.52f) },
-                { x + (int)(size * 0.48f), y + (int)(size * 0.52f) },
-                { x + (int)(size * 0.38f), y + (int)(size * 0.95f) },
-                { x + (int)(size * 0.80f), y + (int)(size * 0.42f) },
-                { x + (int)(size * 0.52f), y + (int)(size * 0.42f) },
-                { x + (int)(size * 0.62f), y + (int)(size * 0.05f) }
+            // Cyberpunk sharp lightning bolt (smooth anti-aliased solid fill + outline)
+            PointF pts[7] = {
+                { fx + fs * 0.58f, fy + fs * 0.04f },
+                { fx + fs * 0.20f, fy + fs * 0.52f },
+                { fx + fs * 0.48f, fy + fs * 0.52f },
+                { fx + fs * 0.38f, fy + fs * 0.96f },
+                { fx + fs * 0.80f, fy + fs * 0.42f },
+                { fx + fs * 0.52f, fy + fs * 0.42f },
+                { fx + fs * 0.62f, fy + fs * 0.04f }
             };
-            Polygon(hdc, pts, 7);
+            if (fill) GdipFillPolygon(gfx, (GpBrush*)fill, pts, 7, FillModeWinding);
+            if (pen) GdipDrawPolygon(gfx, pen, pts, 7);
             break;
         }
 
         case ICON_SETTINGS: {
             // Precision 8-tooth mechanical gear / cog
-            int cx = x + size / 2;
-            int cy = y + size / 2;
-            int r_outer = (int)(size * 0.42f);
-            int r_inner = (int)(size * 0.28f);
-            int r_hole  = (int)(size * 0.14f);
-            if (r_hole < 2) r_hole = 2;
+            float cx = fx + fs * 0.5f;
+            float cy = fy + fs * 0.5f;
+            float r_outer = fs * 0.44f;
+            float r_inner = fs * 0.30f;
+            float r_hole  = fs * 0.14f;
+            if (r_hole < 2.0f) r_hole = 2.0f;
 
             // Draw outer circle
-            Ellipse(hdc, cx - r_inner, cy - r_inner, cx + r_inner + 1, cy + r_inner + 1);
+            if (pen) GdipDrawEllipse(gfx, pen, cx - r_inner, cy - r_inner, r_inner * 2.0f, r_inner * 2.0f);
 
-            // Draw 4 through-bars (8 teeth)
-            for (int a = 0; a < 4; a++) {
-                double angle = a * (M_PI / 4.0);
-                int dx = (int)(cos(angle) * r_outer);
-                int dy = (int)(sin(angle) * r_outer);
-                MoveToEx(hdc, cx - dx, cy - dy, NULL);
-                LineTo(hdc, cx + dx, cy + dy);
+            // Draw 4 through-bars (8 teeth) with rounded ends
+            if (pen) {
+                for (int a = 0; a < 4; a++) {
+                    double angle = a * (M_PI / 4.0);
+                    float dx = (float)(cos(angle) * r_outer);
+                    float dy = (float)(sin(angle) * r_outer);
+                    GdipDrawLine(gfx, pen, cx - dx, cy - dy, cx + dx, cy + dy);
+                }
             }
 
             // Central axle hole
-            Ellipse(hdc, cx - r_hole, cy - r_hole, cx + r_hole + 1, cy + r_hole + 1);
+            if (pen) GdipDrawEllipse(gfx, pen, cx - r_hole, cy - r_hole, r_hole * 2.0f, r_hole * 2.0f);
             break;
         }
 
         case ICON_INFO: {
             // Info circle with centered "i"
-            int pad = (int)(size * 0.08f);
-            Ellipse(hdc, x + pad, y + pad, x + size - pad, y + size - pad);
-            int cx = x + size / 2;
+            float pad = fs * 0.08f;
+            if (pen) GdipDrawEllipse(gfx, pen, fx + pad, fy + pad, fs - pad * 2.0f, fs - pad * 2.0f);
+            
+            float cx = fx + fs * 0.5f;
             
             // Top dot
-            SelectObject(hdc, fill_brush);
-            int dot_y = y + (int)(size * 0.28f);
-            int dot_r = (size >= 20) ? 2 : 1;
-            Ellipse(hdc, cx - dot_r, dot_y - dot_r, cx + dot_r + 1, dot_y + dot_r + 1);
-            SelectObject(hdc, GetStockObject(NULL_BRUSH));
+            float dot_y = fy + fs * 0.28f;
+            float dot_r = (fs >= 20.0f) ? 1.5f : 1.1f;
+            if (fill) GdipFillEllipse(gfx, (GpBrush*)fill, cx - dot_r, dot_y - dot_r, dot_r * 2.0f, dot_r * 2.0f);
 
             // Stem and bottom serif
-            int stem_top = y + (int)(size * 0.42f);
-            int stem_bot = y + (int)(size * 0.74f);
-            MoveToEx(hdc, cx, stem_top, NULL);
-            LineTo(hdc, cx, stem_bot);
-            MoveToEx(hdc, cx - (int)(size * 0.12f), stem_bot, NULL);
-            LineTo(hdc, cx + (int)(size * 0.12f), stem_bot);
+            float stem_top = fy + fs * 0.42f;
+            float stem_bot = fy + fs * 0.72f;
+            if (pen) {
+                GdipDrawLine(gfx, pen, cx, stem_top, cx, stem_bot);
+                GdipDrawLine(gfx, pen, cx - fs * 0.10f, stem_bot, cx + fs * 0.10f, stem_bot);
+            }
             break;
         }
 
         case ICON_PLUS: {
             // Clean centered plus sign
-            int pad = (int)(size * 0.20f);
-            int cx = x + size / 2;
-            int cy = y + size / 2;
-            MoveToEx(hdc, cx, y + pad, NULL);
-            LineTo(hdc, cx, y + size - pad + 1);
-            MoveToEx(hdc, x + pad, cy, NULL);
-            LineTo(hdc, x + size - pad + 1, cy);
+            float pad = fs * 0.20f;
+            float cx = fx + fs * 0.5f;
+            float cy = fy + fs * 0.5f;
+            if (pen) {
+                GdipDrawLine(gfx, pen, cx, fy + pad, cx, fy + fs - pad);
+                GdipDrawLine(gfx, pen, fx + pad, cy, fx + fs - pad, cy);
+            }
             break;
         }
 
         case ICON_CLOSE: {
             // Clean diagonal cross / X
-            int pad = (int)(size * 0.22f);
-            MoveToEx(hdc, x + pad, y + pad, NULL);
-            LineTo(hdc, x + size - pad, y + size - pad);
-            MoveToEx(hdc, x + size - pad, y + pad, NULL);
-            LineTo(hdc, x + pad, y + size - pad);
+            float pad = fs * 0.22f;
+            if (pen) {
+                GdipDrawLine(gfx, pen, fx + pad, fy + pad, fx + fs - pad, fy + fs - pad);
+                GdipDrawLine(gfx, pen, fx + fs - pad, fy + pad, fx + pad, fy + fs - pad);
+            }
             break;
         }
 
         case ICON_EDIT: {
             // Diagonal pencil with sharp tip
-            POINT body[4] = {
-                { x + (int)(size * 0.62f), y + (int)(size * 0.14f) },
-                { x + (int)(size * 0.86f), y + (int)(size * 0.38f) },
-                { x + (int)(size * 0.38f), y + (int)(size * 0.86f) },
-                { x + (int)(size * 0.14f), y + (int)(size * 0.62f) }
+            PointF body[4] = {
+                { fx + fs * 0.62f, fy + fs * 0.14f },
+                { fx + fs * 0.86f, fy + fs * 0.38f },
+                { fx + fs * 0.38f, fy + fs * 0.86f },
+                { fx + fs * 0.14f, fy + fs * 0.62f }
             };
-            Polygon(hdc, body, 4);
+            if (pen) GdipDrawPolygon(gfx, pen, body, 4);
 
-            // Pencil tip
-            POINT tip[3] = {
-                { x + (int)(size * 0.38f), y + (int)(size * 0.86f) },
-                { x + (int)(size * 0.14f), y + (int)(size * 0.62f) },
-                { x + (int)(size * 0.10f), y + (int)(size * 0.90f) }
+            PointF tip[3] = {
+                { fx + fs * 0.38f, fy + fs * 0.86f },
+                { fx + fs * 0.14f, fy + fs * 0.62f },
+                { fx + fs * 0.08f, fy + fs * 0.92f }
             };
-            SelectObject(hdc, fill_brush);
-            Polygon(hdc, tip, 3);
-            SelectObject(hdc, GetStockObject(NULL_BRUSH));
+            if (fill) GdipFillPolygon(gfx, (GpBrush*)fill, tip, 3, FillModeWinding);
+            if (pen) GdipDrawPolygon(gfx, pen, tip, 3);
             break;
         }
 
         case ICON_TRASH: {
             // Wastebasket container with lid & handle
-            int x1 = x + (int)(size * 0.22f);
-            int x2 = x + (int)(size * 0.78f);
-            int y_lid = y + (int)(size * 0.28f);
+            float y_lid = fy + fs * 0.28f;
 
-            // Lid handle
-            MoveToEx(hdc, x + (int)(size * 0.38f), y_lid, NULL);
-            LineTo(hdc, x + (int)(size * 0.38f), y + (int)(size * 0.16f));
-            LineTo(hdc, x + (int)(size * 0.62f), y + (int)(size * 0.16f));
-            LineTo(hdc, x + (int)(size * 0.62f), y_lid);
+            if (pen) {
+                // Lid handle
+                GdipDrawLine(gfx, pen, fx + fs * 0.38f, y_lid, fx + fs * 0.38f, fy + fs * 0.16f);
+                GdipDrawLine(gfx, pen, fx + fs * 0.38f, fy + fs * 0.16f, fx + fs * 0.62f, fy + fs * 0.16f);
+                GdipDrawLine(gfx, pen, fx + fs * 0.62f, fy + fs * 0.16f, fx + fs * 0.62f, y_lid);
 
-            // Lid bar
-            MoveToEx(hdc, x + (int)(size * 0.16f), y_lid, NULL);
-            LineTo(hdc, x + (int)(size * 0.84f), y_lid);
+                // Lid bar
+                GdipDrawLine(gfx, pen, fx + fs * 0.16f, y_lid, fx + fs * 0.84f, y_lid);
 
-            // Bin Body
-            POINT body[4] = {
-                { x1 + (int)(size * 0.04f), y_lid + 2 },
-                { x1 + (int)(size * 0.08f), y + (int)(size * 0.88f) },
-                { x2 - (int)(size * 0.08f), y + (int)(size * 0.88f) },
-                { x2 - (int)(size * 0.04f), y_lid + 2 }
-            };
-            Polyline(hdc, body, 4);
+                // Bin Body
+                PointF body[4] = {
+                    { fx + fs * 0.24f, y_lid + 2.0f },
+                    { fx + fs * 0.28f, fy + fs * 0.88f },
+                    { fx + fs * 0.72f, fy + fs * 0.88f },
+                    { fx + fs * 0.76f, y_lid + 2.0f }
+                };
+                GdipDrawPolygon(gfx, pen, body, 4);
 
-            // Center ribs
-            int cx = x + size / 2;
-            MoveToEx(hdc, cx - (int)(size * 0.10f), y_lid + 4, NULL);
-            LineTo(hdc, cx - (int)(size * 0.10f), y + (int)(size * 0.80f));
-            MoveToEx(hdc, cx + (int)(size * 0.10f), y_lid + 4, NULL);
-            LineTo(hdc, cx + (int)(size * 0.10f), y + (int)(size * 0.80f));
+                // Center ribs
+                GdipDrawLine(gfx, pen, fx + fs * 0.42f, y_lid + 4.0f, fx + fs * 0.42f, fy + fs * 0.80f);
+                GdipDrawLine(gfx, pen, fx + fs * 0.58f, y_lid + 4.0f, fx + fs * 0.58f, fy + fs * 0.80f);
+            }
             break;
         }
 
         case ICON_IMPORT: {
             // Bottom tray + downward arrow
-            int bx1 = x + (int)(size * 0.16f);
-            int bx2 = x + (int)(size * 0.84f);
-            int by1 = y + (int)(size * 0.58f);
-            int by2 = y + (int)(size * 0.86f);
-
-            POINT tray[4] = {
-                { bx1, by1 },
-                { bx1, by2 },
-                { bx2, by2 },
-                { bx2, by1 }
+            PointF tray[4] = {
+                { fx + fs * 0.16f, fy + fs * 0.58f },
+                { fx + fs * 0.16f, fy + fs * 0.86f },
+                { fx + fs * 0.84f, fy + fs * 0.86f },
+                { fx + fs * 0.84f, fy + fs * 0.58f }
             };
-            Polyline(hdc, tray, 4);
+            if (pen) {
+                GdipDrawLines(gfx, pen, tray, 4);
 
-            // Arrow down
-            int cx = x + size / 2;
-            MoveToEx(hdc, cx, y + (int)(size * 0.14f), NULL);
-            LineTo(hdc, cx, y + (int)(size * 0.62f));
-            
-            POINT head[3] = {
-                { cx - (int)(size * 0.20f), y + (int)(size * 0.44f) },
-                { cx, y + (int)(size * 0.64f) },
-                { cx + (int)(size * 0.20f), y + (int)(size * 0.44f) }
-            };
-            Polyline(hdc, head, 3);
+                // Arrow down
+                float cx = fx + fs * 0.5f;
+                GdipDrawLine(gfx, pen, cx, fy + fs * 0.14f, cx, fy + fs * 0.62f);
+                
+                PointF head[3] = {
+                    { cx - fs * 0.20f, fy + fs * 0.44f },
+                    { cx, fy + fs * 0.64f },
+                    { cx + fs * 0.20f, fy + fs * 0.44f }
+                };
+                GdipDrawLines(gfx, pen, head, 3);
+            }
             break;
         }
 
         case ICON_EXPORT: {
             // Bottom tray + upward arrow
-            int bx1 = x + (int)(size * 0.16f);
-            int bx2 = x + (int)(size * 0.84f);
-            int by1 = y + (int)(size * 0.58f);
-            int by2 = y + (int)(size * 0.86f);
-
-            POINT tray[4] = {
-                { bx1, by1 },
-                { bx1, by2 },
-                { bx2, by2 },
-                { bx2, by1 }
+            PointF tray[4] = {
+                { fx + fs * 0.16f, fy + fs * 0.58f },
+                { fx + fs * 0.16f, fy + fs * 0.86f },
+                { fx + fs * 0.84f, fy + fs * 0.86f },
+                { fx + fs * 0.84f, fy + fs * 0.58f }
             };
-            Polyline(hdc, tray, 4);
+            if (pen) {
+                GdipDrawLines(gfx, pen, tray, 4);
 
-            // Arrow up
-            int cx = x + size / 2;
-            MoveToEx(hdc, cx, y + (int)(size * 0.64f), NULL);
-            LineTo(hdc, cx, y + (int)(size * 0.16f));
-            
-            POINT head[3] = {
-                { cx - (int)(size * 0.20f), y + (int)(size * 0.36f) },
-                { cx, y + (int)(size * 0.16f) },
-                { cx + (int)(size * 0.20f), y + (int)(size * 0.36f) }
-            };
-            Polyline(hdc, head, 3);
+                // Arrow up
+                float cx = fx + fs * 0.5f;
+                GdipDrawLine(gfx, pen, cx, fy + fs * 0.64f, cx, fy + fs * 0.16f);
+                
+                PointF head[3] = {
+                    { cx - fs * 0.20f, fy + fs * 0.36f },
+                    { cx, fy + fs * 0.16f },
+                    { cx + fs * 0.20f, fy + fs * 0.36f }
+                };
+                GdipDrawLines(gfx, pen, head, 3);
+            }
             break;
         }
 
         case ICON_SAVE: {
-            // Floppy disk / storage chip
-            int x1 = x + (int)(size * 0.14f);
-            int y1 = y + (int)(size * 0.14f);
-            int x2 = x + (int)(size * 0.86f);
-            int y2 = y + (int)(size * 0.86f);
-            int chamfer = (int)(size * 0.14f);
+            // Storage chip / floppy disk
+            float x1 = fx + fs * 0.14f, y1 = fy + fs * 0.14f;
+            float x2 = fx + fs * 0.86f, y2 = fy + fs * 0.86f;
+            float chamfer = fs * 0.14f;
 
-            POINT disk[6] = {
+            PointF disk[6] = {
                 { x1, y1 },
                 { x2 - chamfer, y1 },
                 { x2, y1 + chamfer },
@@ -253,79 +400,68 @@ void DrawVectorIcon(HDC hdc, IconId icon, int x, int y, int size, COLORREF color
                 { x1, y2 },
                 { x1, y1 }
             };
-            Polyline(hdc, disk, 6);
-
-            // Top shutter
-            Rectangle(hdc, x1 + (int)(size * 0.14f), y1, x2 - (int)(size * 0.14f), y1 + (int)(size * 0.28f));
-            // Bottom label
-            Rectangle(hdc, x1 + (int)(size * 0.10f), y2 - (int)(size * 0.32f), x2 - (int)(size * 0.10f), y2);
+            if (pen) {
+                GdipDrawPolygon(gfx, pen, disk, 6);
+                GdipDrawRectangle(gfx, pen, x1 + fs * 0.14f, y1, (x2 - x1) - fs * 0.28f, fs * 0.26f);
+                GdipDrawRectangle(gfx, pen, x1 + fs * 0.10f, y2 - fs * 0.32f, (x2 - x1) - fs * 0.20f, fs * 0.32f);
+            }
             break;
         }
 
         case ICON_FOLDER: {
             // Directory folder with tab
-            int x1 = x + (int)(size * 0.12f);
-            int y1 = y + (int)(size * 0.22f);
-            int x2 = x + (int)(size * 0.88f);
-            int y2 = y + (int)(size * 0.84f);
-            int tab_w = (int)(size * 0.34f);
-            int tab_h = (int)(size * 0.14f);
+            float x1 = fx + fs * 0.12f, y1 = fy + fs * 0.22f;
+            float x2 = fx + fs * 0.88f, y2 = fy + fs * 0.84f;
+            float tab_w = fs * 0.34f, tab_h = fs * 0.14f;
 
-            POINT folder[7] = {
+            PointF folder[7] = {
                 { x1, y1 },
                 { x1 + tab_w, y1 },
-                { x1 + tab_w + (int)(size * 0.08f), y1 + tab_h },
+                { x1 + tab_w + fs * 0.08f, y1 + tab_h },
                 { x2, y1 + tab_h },
                 { x2, y2 },
                 { x1, y2 },
                 { x1, y1 }
             };
-            Polygon(hdc, folder, 7);
+            if (pen) GdipDrawPolygon(gfx, pen, folder, 7);
             break;
         }
 
         case ICON_COPY: {
             // Dual overlapping clipboard sheets
-            int off = (int)(size * 0.16f);
-            // Back sheet
-            POINT back[5] = {
-                { x + off + (int)(size * 0.14f), y + (int)(size * 0.12f) },
-                { x + size - (int)(size * 0.12f), y + (int)(size * 0.12f) },
-                { x + size - (int)(size * 0.12f), y + size - off - (int)(size * 0.12f) },
-                { x + off + (int)(size * 0.14f), y + size - off - (int)(size * 0.12f) },
-                { x + off + (int)(size * 0.14f), y + (int)(size * 0.12f) }
+            float off = fs * 0.16f;
+            PointF back[5] = {
+                { fx + off + fs * 0.14f, fy + fs * 0.12f },
+                { fx + fs - fs * 0.12f, fy + fs * 0.12f },
+                { fx + fs - fs * 0.12f, fy + fs - off - fs * 0.12f },
+                { fx + off + fs * 0.14f, fy + fs - off - fs * 0.12f },
+                { fx + off + fs * 0.14f, fy + fs * 0.12f }
             };
-            Polyline(hdc, back, 5);
+            if (pen) GdipDrawLines(gfx, pen, back, 5);
 
-            // Front sheet (solid backdrop)
-            SelectObject(hdc, fill_brush);
-            int fx1 = x + (int)(size * 0.12f);
-            int fy1 = y + off + (int)(size * 0.12f);
-            int fx2 = x + size - off - (int)(size * 0.14f);
-            int fy2 = y + size - (int)(size * 0.12f);
-            
-            // Draw background cutout
-            HBRUSH bg_b = CreateSolidBrush(COLOR_BG_CARD);
-            HGDIOBJ b_old = SelectObject(hdc, bg_b);
-            Rectangle(hdc, fx1, fy1, fx2, fy2);
-            SelectObject(hdc, b_old);
-            DeleteObject(bg_b);
+            float fx1 = fx + fs * 0.12f, fy1 = fy + off + fs * 0.12f;
+            float fw = fs * 0.58f, fh = fs * 0.60f;
 
-            // Front sheet border
-            Rectangle(hdc, fx1, fy1, fx2, fy2);
+            GpSolidFill* bg_f = NULL;
+            GdipCreateSolidFill(ColorrefToARGB(COLOR_BG_CARD, 255), &bg_f);
+            if (bg_f) {
+                GdipFillRectangle(gfx, (GpBrush*)bg_f, fx1, fy1, fw, fh);
+                GdipDeleteBrush((GpBrush*)bg_f);
+            }
+            if (pen) GdipDrawRectangle(gfx, pen, fx1, fy1, fw, fh);
             break;
         }
 
         case ICON_SHIELD: {
             // Security shield outline + vertical dividing crest
-            int x1 = x + (int)(size * 0.18f);
-            int x2 = x + (int)(size * 0.82f);
-            int y1 = y + (int)(size * 0.14f);
-            int ym = y + (int)(size * 0.52f);
-            int y2 = y + (int)(size * 0.90f);
-            int cx = x + size / 2;
+            float x1 = fx + fs * 0.18f;
+            float x2 = fx + fs * 0.82f;
+            float y1 = fy + fs * 0.14f;
+            float ym = fy + fs * 0.52f;
+            float y2 = fy + fs * 0.90f;
+            float cx = fx + fs * 0.5f;
 
-            POINT shield[6] = {
+            PointF shield[6] = {
                 { x1, y1 },
                 { x2, y1 },
                 { x2, ym },
@@ -333,399 +469,405 @@ void DrawVectorIcon(HDC hdc, IconId icon, int x, int y, int size, COLORREF color
                 { x1, ym },
                 { x1, y1 }
             };
-            Polyline(hdc, shield, 6);
-
-            // Vertical crest
-            MoveToEx(hdc, cx, y1 + 2, NULL);
-            LineTo(hdc, cx, y2 - 2);
+            if (pen) {
+                GdipDrawPolygon(gfx, pen, shield, 6);
+                GdipDrawLine(gfx, pen, cx, y1 + 2.0f, cx, y2 - 2.0f);
+            }
             break;
         }
 
         case ICON_TARGET: {
             // Precision crosshair reticle
-            int cx = x + size / 2;
-            int cy = y + size / 2;
-            int r_outer = (int)(size * 0.38f);
-            int r_inner = (int)(size * 0.16f);
+            float cx = fx + fs * 0.5f;
+            float cy = fy + fs * 0.5f;
+            float r_outer = fs * 0.38f;
+            float r_inner = fs * 0.16f;
 
-            // Outer circle
-            Ellipse(hdc, cx - r_outer, cy - r_outer, cx + r_outer + 1, cy + r_outer + 1);
-            // Inner circle
-            Ellipse(hdc, cx - r_inner, cy - r_inner, cx + r_inner + 1, cy + r_inner + 1);
+            if (pen) {
+                // Outer circle
+                GdipDrawEllipse(gfx, pen, cx - r_outer, cy - r_outer, r_outer * 2.0f, r_outer * 2.0f);
+                // Inner circle
+                GdipDrawEllipse(gfx, pen, cx - r_inner, cy - r_inner, r_inner * 2.0f, r_inner * 2.0f);
 
-            // 4 Crosshair ticks
-            MoveToEx(hdc, cx, y + (int)(size * 0.04f), NULL);
-            LineTo(hdc, cx, cy - r_inner);
-
-            MoveToEx(hdc, cx, cy + r_inner, NULL);
-            LineTo(hdc, cx, y + size - (int)(size * 0.04f));
-
-            MoveToEx(hdc, x + (int)(size * 0.04f), cy, NULL);
-            LineTo(hdc, cx - r_inner, cy);
-
-            MoveToEx(hdc, cx + r_inner, cy, NULL);
-            LineTo(hdc, x + size - (int)(size * 0.04f), cy);
+                // 4 Crosshair ticks
+                GdipDrawLine(gfx, pen, cx, fy + fs * 0.04f, cx, cy - r_inner);
+                GdipDrawLine(gfx, pen, cx, cy + r_inner, cx, fy + fs * 0.96f);
+                GdipDrawLine(gfx, pen, fx + fs * 0.04f, cy, cx - r_inner, cy);
+                GdipDrawLine(gfx, pen, cx + r_inner, cy, fx + fs * 0.96f, cy);
+            }
             break;
         }
 
         case ICON_CLOCK: {
             // Clock face with hour and minute hands
-            int pad = (int)(size * 0.10f);
-            int cx = x + size / 2;
-            int cy = y + size / 2;
-            Ellipse(hdc, x + pad, y + pad, x + size - pad, y + size - pad);
-
-            // Hour hand (pointing to 12)
-            MoveToEx(hdc, cx, cy, NULL);
-            LineTo(hdc, cx, cy - (int)(size * 0.26f));
-
-            // Minute hand (pointing to 3)
-            MoveToEx(hdc, cx, cy, NULL);
-            LineTo(hdc, cx + (int)(size * 0.22f), cy);
+            float pad = fs * 0.10f;
+            float cx = fx + fs * 0.5f;
+            float cy = fy + fs * 0.5f;
+            if (pen) {
+                GdipDrawEllipse(gfx, pen, fx + pad, fy + pad, fs - pad * 2.0f, fs - pad * 2.0f);
+                // Hour hand (pointing to 12)
+                GdipDrawLine(gfx, pen, cx, cy, cx, cy - fs * 0.26f);
+                // Minute hand (pointing to 3)
+                GdipDrawLine(gfx, pen, cx, cy, cx + fs * 0.22f, cy);
+            }
             break;
         }
 
         case ICON_LOCK: {
             // Padlock: Top shackle + rounded body + keyhole
-            int bx1 = x + (int)(size * 0.22f);
-            int bx2 = x + (int)(size * 0.78f);
-            int by1 = y + (int)(size * 0.44f);
-            int by2 = y + (int)(size * 0.88f);
+            float bx1 = fx + fs * 0.22f;
+            float bx2 = fx + fs * 0.78f;
+            float by1 = fy + fs * 0.44f;
+            float by2 = fy + fs * 0.88f;
 
-            // Shackle
-            int sx1 = x + (int)(size * 0.32f);
-            int sx2 = x + (int)(size * 0.68f);
-            int sy1 = y + (int)(size * 0.16f);
+            float sx1 = fx + fs * 0.32f;
+            float sx2 = fx + fs * 0.68f;
+            float sy1 = fy + fs * 0.16f;
 
-            POINT shackle[4] = {
-                { sx1, by1 },
-                { sx1, sy1 },
-                { sx2, sy1 },
-                { sx2, by1 }
-            };
-            Polyline(hdc, shackle, 4);
+            if (pen) {
+                // Shackle
+                PointF shackle[4] = {
+                    { sx1, by1 },
+                    { sx1, sy1 },
+                    { sx2, sy1 },
+                    { sx2, by1 }
+                };
+                GdipDrawLines(gfx, pen, shackle, 4);
 
-            // Body
-            RoundRect(hdc, bx1, by1, bx2, by2, 4, 4);
+                // Body (rounded rectangle)
+                GpPath* lock_path = NULL;
+                if (GdipCreatePath(FillModeWinding, &lock_path) == 0 && lock_path) {
+                    float rad = fs * 0.08f;
+                    GdipAddPathArc(lock_path, bx1, by1, rad * 2.0f, rad * 2.0f, 180.0f, 90.0f);
+                    GdipAddPathArc(lock_path, bx2 - rad * 2.0f, by1, rad * 2.0f, rad * 2.0f, 270.0f, 90.0f);
+                    GdipAddPathArc(lock_path, bx2 - rad * 2.0f, by2 - rad * 2.0f, rad * 2.0f, rad * 2.0f, 0.0f, 90.0f);
+                    GdipAddPathArc(lock_path, bx1, by2 - rad * 2.0f, rad * 2.0f, rad * 2.0f, 90.0f, 90.0f);
+                    GdipClosePathFigure(lock_path);
+                    GdipDrawPath(gfx, pen, lock_path);
+                    GdipDeletePath(lock_path);
+                }
 
-            // Keyhole
-            int cx = x + size / 2;
-            MoveToEx(hdc, cx, by1 + (int)(size * 0.12f), NULL);
-            LineTo(hdc, cx, by1 + (int)(size * 0.26f));
+                // Keyhole
+                float cx = fx + fs * 0.5f;
+                GdipDrawLine(gfx, pen, cx, by1 + fs * 0.12f, cx, by1 + fs * 0.26f);
+            }
             break;
         }
 
         case ICON_ARROW_DOWN: {
             // Downward arrow
-            int cx = x + size / 2;
-            MoveToEx(hdc, cx, y + (int)(size * 0.16f), NULL);
-            LineTo(hdc, cx, y + (int)(size * 0.82f));
+            float cx = fx + fs * 0.5f;
+            if (pen) {
+                GdipDrawLine(gfx, pen, cx, fy + fs * 0.16f, cx, fy + fs * 0.82f);
 
-            POINT head[3] = {
-                { cx - (int)(size * 0.26f), y + (int)(size * 0.54f) },
-                { cx, y + (int)(size * 0.82f) },
-                { cx + (int)(size * 0.26f), y + (int)(size * 0.54f) }
-            };
-            Polyline(hdc, head, 3);
+                PointF head[3] = {
+                    { cx - fs * 0.26f, fy + fs * 0.54f },
+                    { cx, fy + fs * 0.82f },
+                    { cx + fs * 0.26f, fy + fs * 0.54f }
+                };
+                GdipDrawLines(gfx, pen, head, 3);
+            }
             break;
         }
 
         case ICON_ARROW_UP: {
             // Upward arrow
-            int cx = x + size / 2;
-            MoveToEx(hdc, cx, y + (int)(size * 0.82f), NULL);
-            LineTo(hdc, cx, y + (int)(size * 0.16f));
+            float cx = fx + fs * 0.5f;
+            if (pen) {
+                GdipDrawLine(gfx, pen, cx, fy + fs * 0.82f, cx, fy + fs * 0.16f);
 
-            POINT head[3] = {
-                { cx - (int)(size * 0.26f), y + (int)(size * 0.44f) },
-                { cx, y + (int)(size * 0.16f) },
-                { cx + (int)(size * 0.26f), y + (int)(size * 0.44f) }
-            };
-            Polyline(hdc, head, 3);
+                PointF head[3] = {
+                    { cx - fs * 0.26f, fy + fs * 0.44f },
+                    { cx, fy + fs * 0.16f },
+                    { cx + fs * 0.26f, fy + fs * 0.44f }
+                };
+                GdipDrawLines(gfx, pen, head, 3);
+            }
             break;
         }
 
         case ICON_SEQUENCE: {
             // 3 Stepping block nodes connected by a flow line
-            int r = (size >= 24) ? 3 : 2;
-            int p1_x = x + (int)(size * 0.22f), p1_y = y + (int)(size * 0.28f);
-            int p2_x = x + (int)(size * 0.50f), p2_y = y + (int)(size * 0.50f);
-            int p3_x = x + (int)(size * 0.78f), p3_y = y + (int)(size * 0.72f);
+            float r = (fs >= 24.0f) ? 2.5f : 1.8f;
+            float p1_x = fx + fs * 0.22f, p1_y = fy + fs * 0.28f;
+            float p2_x = fx + fs * 0.50f, p2_y = fy + fs * 0.50f;
+            float p3_x = fx + fs * 0.78f, p3_y = fy + fs * 0.72f;
 
-            // Flow line
-            MoveToEx(hdc, p1_x, p1_y, NULL);
-            LineTo(hdc, p2_x, p2_y);
-            LineTo(hdc, p3_x, p3_y);
+            if (pen) {
+                PointF flow[3] = { { p1_x, p1_y }, { p2_x, p2_y }, { p3_x, p3_y } };
+                GdipDrawLines(gfx, pen, flow, 3);
+            }
 
             // Node dots
-            SelectObject(hdc, fill_brush);
-            Ellipse(hdc, p1_x - r, p1_y - r, p1_x + r + 1, p1_y + r + 1);
-            Ellipse(hdc, p2_x - r, p2_y - r, p2_x + r + 1, p2_y + r + 1);
-            Ellipse(hdc, p3_x - r, p3_y - r, p3_x + r + 1, p3_y + r + 1);
+            if (fill) {
+                GdipFillEllipse(gfx, (GpBrush*)fill, p1_x - r, p1_y - r, r * 2.0f, r * 2.0f);
+                GdipFillEllipse(gfx, (GpBrush*)fill, p2_x - r, p2_y - r, r * 2.0f, r * 2.0f);
+                GdipFillEllipse(gfx, (GpBrush*)fill, p3_x - r, p3_y - r, r * 2.0f, r * 2.0f);
+            }
             break;
         }
 
         case ICON_BELL: {
             // Tactical chime bell
-            int bx1 = x + (int)(size * 0.20f);
-            int bx2 = x + (int)(size * 0.80f);
-            int by_rim = y + (int)(size * 0.72f);
-            int cx = x + size / 2;
+            float bx1 = fx + fs * 0.20f;
+            float bx2 = fx + fs * 0.80f;
+            float by_rim = fy + fs * 0.72f;
+            float cx = fx + fs * 0.5f;
 
-            // Bell dome
-            POINT bell[5] = {
+            PointF bell[5] = {
                 { bx1, by_rim },
-                { cx - (int)(size * 0.16f), y + (int)(size * 0.26f) },
-                { cx + (int)(size * 0.16f), y + (int)(size * 0.26f) },
+                { cx - fs * 0.16f, fy + fs * 0.26f },
+                { cx + fs * 0.16f, fy + fs * 0.26f },
                 { bx2, by_rim },
                 { bx1, by_rim }
             };
-            Polyline(hdc, bell, 5);
-
-            // Top loop
-            MoveToEx(hdc, cx, y + (int)(size * 0.26f), NULL);
-            LineTo(hdc, cx, y + (int)(size * 0.16f));
-
-            // Clapper
-            MoveToEx(hdc, cx - (int)(size * 0.08f), by_rim + 1, NULL);
-            LineTo(hdc, cx + (int)(size * 0.08f), by_rim + 1);
+            if (pen) {
+                GdipDrawPolygon(gfx, pen, bell, 5);
+                // Top loop
+                GdipDrawLine(gfx, pen, cx, fy + fs * 0.26f, cx, fy + fs * 0.14f);
+                // Clapper
+                GdipDrawLine(gfx, pen, cx - fs * 0.08f, by_rim + 1.0f, cx + fs * 0.08f, by_rim + 1.0f);
+            }
             break;
         }
 
         case ICON_STATS: {
             // 3-Bar histogram with baseline
-            int y_base = y + (int)(size * 0.84f);
-            MoveToEx(hdc, x + (int)(size * 0.12f), y_base, NULL);
-            LineTo(hdc, x + (int)(size * 0.88f), y_base);
+            float y_base = fy + fs * 0.84f;
+            if (pen) GdipDrawLine(gfx, pen, fx + fs * 0.12f, y_base, fx + fs * 0.88f, y_base);
 
-            // Bar 1
-            SelectObject(hdc, fill_brush);
-            Rectangle(hdc, x + (int)(size * 0.20f), y + (int)(size * 0.54f), x + (int)(size * 0.34f), y_base);
-            // Bar 2
-            Rectangle(hdc, x + (int)(size * 0.42f), y + (int)(size * 0.32f), x + (int)(size * 0.56f), y_base);
-            // Bar 3
-            Rectangle(hdc, x + (int)(size * 0.64f), y + (int)(size * 0.16f), x + (int)(size * 0.78f), y_base);
+            if (fill) {
+                float bw = fs * 0.14f;
+                // Bar 1
+                GdipFillRectangle(gfx, (GpBrush*)fill, fx + fs * 0.20f, fy + fs * 0.54f, bw, y_base - (fy + fs * 0.54f));
+                // Bar 2
+                GdipFillRectangle(gfx, (GpBrush*)fill, fx + fs * 0.42f, fy + fs * 0.32f, bw, y_base - (fy + fs * 0.32f));
+                // Bar 3
+                GdipFillRectangle(gfx, (GpBrush*)fill, fx + fs * 0.64f, fy + fs * 0.16f, bw, y_base - (fy + fs * 0.16f));
+            }
             break;
         }
 
         case ICON_TOOLS: {
             // Diagonal wrench
-            int x1 = x + (int)(size * 0.22f);
-            int y1 = y + (int)(size * 0.78f);
-            int x2 = x + (int)(size * 0.72f);
-            int y2 = y + (int)(size * 0.28f);
+            float x1 = fx + fs * 0.22f;
+            float y1 = fy + fs * 0.78f;
+            float x2 = fx + fs * 0.72f;
+            float y2 = fy + fs * 0.28f;
 
-            // Handle
-            MoveToEx(hdc, x1, y1, NULL);
-            LineTo(hdc, x2, y2);
+            if (pen) {
+                // Handle
+                GdipDrawLine(gfx, pen, x1, y1, x2, y2);
 
-            // Wrench jaw at top-right
-            MoveToEx(hdc, x2 - (int)(size * 0.12f), y2 + (int)(size * 0.06f), NULL);
-            LineTo(hdc, x2 + (int)(size * 0.12f), y2 - (int)(size * 0.14f));
-            LineTo(hdc, x2 + (int)(size * 0.18f), y2 - (int)(size * 0.04f));
+                // Wrench jaw at top-right
+                GdipDrawLine(gfx, pen, x2 - fs * 0.12f, y2 + fs * 0.06f, x2 + fs * 0.12f, y2 - fs * 0.14f);
+                GdipDrawLine(gfx, pen, x2 + fs * 0.12f, y2 - fs * 0.14f, x2 + fs * 0.18f, y2 - fs * 0.04f);
 
-            // Ring at bottom-left
-            int r = (size >= 20) ? 3 : 2;
-            Ellipse(hdc, x1 - r, y1 - r, x1 + r + 1, y1 + r + 1);
+                // Ring at bottom-left
+                float r = (fs >= 20.0f) ? 2.5f : 1.8f;
+                GdipDrawEllipse(gfx, pen, x1 - r, y1 - r, r * 2.0f, r * 2.0f);
+            }
             break;
         }
 
         case ICON_CHECK: {
             // Crisp verification checkmark
-            POINT check[3] = {
-                { x + (int)(size * 0.16f), y + (int)(size * 0.52f) },
-                { x + (int)(size * 0.42f), y + (int)(size * 0.78f) },
-                { x + (int)(size * 0.84f), y + (int)(size * 0.22f) }
+            PointF check[3] = {
+                { fx + fs * 0.16f, fy + fs * 0.52f },
+                { fx + fs * 0.40f, fy + fs * 0.78f },
+                { fx + fs * 0.84f, fy + fs * 0.22f }
             };
-            Polyline(hdc, check, 3);
+            if (pen) GdipDrawLines(gfx, pen, check, 3);
             break;
         }
 
         case ICON_PLAY: {
             // Right-pointing play triangle
-            SelectObject(hdc, fill_brush);
-            POINT tri[3] = {
-                { x + (int)(size * 0.26f), y + (int)(size * 0.18f) },
-                { x + (int)(size * 0.82f), y + (int)(size * 0.50f) },
-                { x + (int)(size * 0.26f), y + (int)(size * 0.82f) }
+            PointF tri[3] = {
+                { fx + fs * 0.26f, fy + fs * 0.18f },
+                { fx + fs * 0.82f, fy + fs * 0.50f },
+                { fx + fs * 0.26f, fy + fs * 0.82f }
             };
-            Polygon(hdc, tri, 3);
+            if (fill) GdipFillPolygon(gfx, (GpBrush*)fill, tri, 3, FillModeWinding);
+            if (pen) GdipDrawPolygon(gfx, pen, tri, 3);
             break;
         }
 
         case ICON_STOP: {
             // Solid stop square
-            SelectObject(hdc, fill_brush);
-            int pad = (int)(size * 0.24f);
-            Rectangle(hdc, x + pad, y + pad, x + size - pad, y + size - pad);
+            float pad = fs * 0.24f;
+            if (fill) GdipFillRectangle(gfx, (GpBrush*)fill, fx + pad, fy + pad, fs - pad * 2.0f, fs - pad * 2.0f);
+            if (pen) GdipDrawRectangle(gfx, pen, fx + pad, fy + pad, fs - pad * 2.0f, fs - pad * 2.0f);
             break;
         }
 
         case ICON_KEYBOARD: {
             // Physical keyboard frame + keys
-            int x1 = x + (int)(size * 0.12f);
-            int y1 = y + (int)(size * 0.24f);
-            int x2 = x + (int)(size * 0.88f);
-            int y2 = y + (int)(size * 0.76f);
-            RoundRect(hdc, x1, y1, x2, y2, 4, 4);
+            float x1 = fx + fs * 0.12f;
+            float y1 = fy + fs * 0.24f;
+            float x2 = fx + fs * 0.88f;
+            float y2 = fy + fs * 0.76f;
 
-            // Key dots / spacebar
-            int my = y + (int)(size * 0.44f);
-            MoveToEx(hdc, x1 + (int)(size * 0.10f), my, NULL);
-            LineTo(hdc, x1 + (int)(size * 0.18f), my);
+            if (pen) {
+                GdipDrawRectangle(gfx, pen, x1, y1, x2 - x1, y2 - y1);
 
-            MoveToEx(hdc, x1 + (int)(size * 0.28f), my, NULL);
-            LineTo(hdc, x1 + (int)(size * 0.36f), my);
+                // Key dots / spacebar
+                float my = fy + fs * 0.44f;
+                GdipDrawLine(gfx, pen, x1 + fs * 0.10f, my, x1 + fs * 0.18f, my);
+                GdipDrawLine(gfx, pen, x1 + fs * 0.28f, my, x1 + fs * 0.36f, my);
+                GdipDrawLine(gfx, pen, x1 + fs * 0.46f, my, x1 + fs * 0.54f, my);
 
-            MoveToEx(hdc, x1 + (int)(size * 0.46f), my, NULL);
-            LineTo(hdc, x1 + (int)(size * 0.54f), my);
-
-            // Spacebar
-            int sy = y + (int)(size * 0.60f);
-            MoveToEx(hdc, x1 + (int)(size * 0.16f), sy, NULL);
-            LineTo(hdc, x2 - (int)(size * 0.16f), sy);
+                // Spacebar
+                float sy = fy + fs * 0.60f;
+                GdipDrawLine(gfx, pen, x1 + fs * 0.16f, sy, x2 - fs * 0.16f, sy);
+            }
             break;
         }
 
         case ICON_RESET: {
             // Circular reload / reset arrow
-            int cx = x + size / 2;
-            int cy = y + size / 2;
-            int r = (int)(size * 0.34f);
-            Arc(hdc, cx - r, cy - r, cx + r + 1, cy + r + 1, cx + r, cy, cx, cy - r);
+            float cx = fx + fs * 0.5f;
+            float cy = fy + fs * 0.5f;
+            float r = fs * 0.34f;
 
-            // Arrowhead at top right
-            POINT arr[3] = {
-                { cx + r - (int)(size * 0.16f), cy - (int)(size * 0.18f) },
-                { cx + r + (int)(size * 0.04f), cy - (int)(size * 0.02f) },
-                { cx + r + (int)(size * 0.18f), cy - (int)(size * 0.18f) }
-            };
-            Polyline(hdc, arr, 3);
+            if (pen) {
+                GdipDrawArc(gfx, pen, cx - r, cy - r, r * 2.0f, r * 2.0f, 0.0f, 270.0f);
+
+                // Arrowhead at top right
+                PointF arr[3] = {
+                    { cx + r - fs * 0.16f, cy - fs * 0.18f },
+                    { cx + r + fs * 0.04f, cy - fs * 0.02f },
+                    { cx + r + fs * 0.18f, cy - fs * 0.18f }
+                };
+                GdipDrawLines(gfx, pen, arr, 3);
+            }
             break;
         }
 
         case ICON_CPU: {
             // Microprocessor chip with 8 pins
-            int x1 = x + (int)(size * 0.26f);
-            int y1 = y + (int)(size * 0.26f);
-            int x2 = x + (int)(size * 0.74f);
-            int y2 = y + (int)(size * 0.74f);
+            float x1 = fx + fs * 0.26f;
+            float y1 = fy + fs * 0.26f;
+            float w = fs * 0.48f;
+            float h = fs * 0.48f;
 
-            // Core chip body
-            Rectangle(hdc, x1, y1, x2, y2);
+            if (pen) {
+                GdipDrawRectangle(gfx, pen, x1, y1, w, h);
+                if (fill) GdipFillRectangle(gfx, (GpBrush*)fill, x1 + fs * 0.10f, y1 + fs * 0.10f, w - fs * 0.20f, h - fs * 0.20f);
 
-            // Inner core die
-            SelectObject(hdc, fill_brush);
-            Rectangle(hdc, x1 + (int)(size * 0.12f), y1 + (int)(size * 0.12f), x2 - (int)(size * 0.12f), y2 - (int)(size * 0.12f));
-            SelectObject(hdc, GetStockObject(NULL_BRUSH));
+                // 8 Pins (2 on each of 4 edges)
+                float p1 = fs * 0.38f;
+                float p2 = fs * 0.62f;
 
-            // 8 Pins (2 on each of 4 edges)
-            int pin_off1 = (int)(size * 0.38f);
-            int pin_off2 = (int)(size * 0.62f);
+                // Top pins
+                GdipDrawLine(gfx, pen, fx + p1, fy + fs * 0.10f, fx + p1, y1);
+                GdipDrawLine(gfx, pen, fx + p2, fy + fs * 0.10f, fx + p2, y1);
 
-            // Top pins
-            MoveToEx(hdc, x + pin_off1, y + (int)(size * 0.10f), NULL); LineTo(hdc, x + pin_off1, y1);
-            MoveToEx(hdc, x + pin_off2, y + (int)(size * 0.10f), NULL); LineTo(hdc, x + pin_off2, y1);
+                // Bottom pins
+                GdipDrawLine(gfx, pen, fx + p1, y1 + h, fx + p1, fy + fs * 0.90f);
+                GdipDrawLine(gfx, pen, fx + p2, y1 + h, fx + p2, fy + fs * 0.90f);
 
-            // Bottom pins
-            MoveToEx(hdc, x + pin_off1, y2, NULL); LineTo(hdc, x + pin_off1, y + (int)(size * 0.90f));
-            MoveToEx(hdc, x + pin_off2, y2, NULL); LineTo(hdc, x + pin_off2, y + (int)(size * 0.90f));
+                // Left pins
+                GdipDrawLine(gfx, pen, fx + fs * 0.10f, fy + p1, x1, fy + p1);
+                GdipDrawLine(gfx, pen, fx + fs * 0.10f, fy + p2, x1, fy + p2);
 
-            // Left pins
-            MoveToEx(hdc, x + (int)(size * 0.10f), y + pin_off1, NULL); LineTo(hdc, x1, y + pin_off1);
-            MoveToEx(hdc, x + (int)(size * 0.10f), y + pin_off2, NULL); LineTo(hdc, x1, y + pin_off2);
-
-            // Right pins
-            MoveToEx(hdc, x2, y + pin_off1, NULL); LineTo(hdc, x + (int)(size * 0.90f), y + pin_off1);
-            MoveToEx(hdc, x2, y + pin_off2, NULL); LineTo(hdc, x + (int)(size * 0.90f), y + pin_off2);
+                // Right pins
+                GdipDrawLine(gfx, pen, x1 + w, fy + p1, fx + fs * 0.90f, fy + p1);
+                GdipDrawLine(gfx, pen, x1 + w, fy + p2, fx + fs * 0.90f, fy + p2);
+            }
             break;
         }
 
         case ICON_GAUGE: {
             // Speedometer / Tachometer
-            int cx = x + size / 2;
-            int cy = y + (int)(size * 0.65f);
-            int r = (int)(size * 0.36f);
+            float cx = fx + fs * 0.5f;
+            float cy = fy + fs * 0.65f;
+            float r = fs * 0.36f;
 
-            // Arch
-            Arc(hdc, cx - r, cy - r, cx + r + 1, cy + r + 1, cx + r, cy, cx - r, cy);
+            if (pen) {
+                // Arch
+                GdipDrawArc(gfx, pen, cx - r, cy - r, r * 2.0f, r * 2.0f, 180.0f, 180.0f);
 
-            // Needle pointing top-right (high velocity)
-            MoveToEx(hdc, cx, cy, NULL);
-            LineTo(hdc, cx + (int)(size * 0.24f), cy - (int)(size * 0.24f));
+                // Needle pointing top-right (high velocity)
+                GdipDrawLine(gfx, pen, cx, cy, cx + fs * 0.24f, cy - fs * 0.24f);
+            }
             break;
         }
 
         case ICON_MINIMIZE: {
             // Titlebar minimize horizontal bar
-            int pad = (int)(size * 0.20f);
-            int cy = y + size / 2;
-            MoveToEx(hdc, x + pad, cy, NULL);
-            LineTo(hdc, x + size - pad, cy);
+            float pad = fs * 0.20f;
+            float cy = fy + fs * 0.5f;
+            if (pen) GdipDrawLine(gfx, pen, fx + pad, cy, fx + fs - pad, cy);
             break;
         }
 
         case ICON_MAXIMIZE: {
             // Titlebar maximize square frame
-            int pad = (int)(size * 0.20f);
-            Rectangle(hdc, x + pad, y + pad, x + size - pad, y + size - pad);
+            float pad = fs * 0.20f;
+            if (pen) GdipDrawRectangle(gfx, pen, fx + pad, fy + pad, fs - pad * 2.0f, fs - pad * 2.0f);
             break;
         }
 
         case ICON_RESTORE: {
             // Titlebar restore dual overlapping squares
-            int pad = (int)(size * 0.18f);
-            int d = (int)(size * 0.22f);
-            Rectangle(hdc, x + pad + d, y + pad, x + size - pad, y + size - pad - d);
-            Rectangle(hdc, x + pad, y + pad + d, x + size - pad - d, y + size - pad);
+            float pad = fs * 0.18f;
+            float d = fs * 0.22f;
+            if (pen) {
+                GdipDrawRectangle(gfx, pen, fx + pad + d, fy + pad, fs - pad * 2.0f - d, fs - pad * 2.0f - d);
+                GdipDrawRectangle(gfx, pen, fx + pad, fy + pad + d, fs - pad * 2.0f - d, fs - pad * 2.0f - d);
+            }
             break;
         }
 
         case ICON_GRIP: {
             // 6-dot vertical drag reordering handle
-            SelectObject(hdc, fill_brush);
-            int r = (size >= 24) ? 2 : 1;
-            int col1 = x + (int)(size * 0.35f);
-            int col2 = x + (int)(size * 0.65f);
-            int row1 = y + (int)(size * 0.25f);
-            int row2 = y + (int)(size * 0.50f);
-            int row3 = y + (int)(size * 0.75f);
+            float r = (fs >= 24.0f) ? 1.8f : 1.2f;
+            float col1 = fx + fs * 0.35f;
+            float col2 = fx + fs * 0.65f;
+            float row1 = fy + fs * 0.25f;
+            float row2 = fy + fs * 0.50f;
+            float row3 = fy + fs * 0.75f;
 
-            Ellipse(hdc, col1 - r, row1 - r, col1 + r + 1, row1 + r + 1);
-            Ellipse(hdc, col2 - r, row1 - r, col2 + r + 1, row1 + r + 1);
-            Ellipse(hdc, col1 - r, row2 - r, col1 + r + 1, row2 + r + 1);
-            Ellipse(hdc, col2 - r, row2 - r, col2 + r + 1, row2 + r + 1);
-            Ellipse(hdc, col1 - r, row3 - r, col1 + r + 1, row3 + r + 1);
-            Ellipse(hdc, col2 - r, row3 - r, col2 + r + 1, row3 + r + 1);
+            if (fill) {
+                GdipFillEllipse(gfx, (GpBrush*)fill, col1 - r, row1 - r, r * 2.0f, r * 2.0f);
+                GdipFillEllipse(gfx, (GpBrush*)fill, col2 - r, row1 - r, r * 2.0f, r * 2.0f);
+                GdipFillEllipse(gfx, (GpBrush*)fill, col1 - r, row2 - r, r * 2.0f, r * 2.0f);
+                GdipFillEllipse(gfx, (GpBrush*)fill, col2 - r, row2 - r, r * 2.0f, r * 2.0f);
+                GdipFillEllipse(gfx, (GpBrush*)fill, col1 - r, row3 - r, r * 2.0f, r * 2.0f);
+                GdipFillEllipse(gfx, (GpBrush*)fill, col2 - r, row3 - r, r * 2.0f, r * 2.0f);
+            }
             break;
         }
 
         case ICON_REPEAT: {
             // Loop / repeat arrows
-            int cx = x + size / 2;
-            int cy = y + size / 2;
-            int r = (int)(size * 0.30f);
+            float cx = fx + fs * 0.5f;
+            float cy = fy + fs * 0.5f;
+            float r = fs * 0.30f;
 
-            // Upper clockwise arc
-            Arc(hdc, cx - r, cy - r, cx + r + 1, cy + r + 1, cx + r, cy, cx - r, cy);
-            // Lower clockwise arc
-            Arc(hdc, cx - r, cy - r, cx + r + 1, cy + r + 1, cx - r, cy, cx + r, cy);
+            if (pen) {
+                // Upper clockwise arc
+                GdipDrawArc(gfx, pen, cx - r, cy - r, r * 2.0f, r * 2.0f, 200.0f, 140.0f);
+                // Lower clockwise arc
+                GdipDrawArc(gfx, pen, cx - r, cy - r, r * 2.0f, r * 2.0f, 20.0f, 140.0f);
 
-            // Upper arrowhead
-            POINT arr1[3] = {
-                { cx + r - (int)(size * 0.12f), cy - (int)(size * 0.12f) },
-                { cx + r, cy },
-                { cx + r + (int)(size * 0.12f), cy - (int)(size * 0.12f) }
-            };
-            Polyline(hdc, arr1, 3);
+                // Upper arrowhead
+                PointF arr1[3] = {
+                    { cx + r - fs * 0.12f, cy - fs * 0.12f },
+                    { cx + r, cy },
+                    { cx + r + fs * 0.12f, cy - fs * 0.12f }
+                };
+                GdipDrawLines(gfx, pen, arr1, 3);
 
-            // Lower arrowhead
-            POINT arr2[3] = {
-                { cx - r - (int)(size * 0.12f), cy + (int)(size * 0.12f) },
-                { cx - r, cy },
-                { cx - r + (int)(size * 0.12f), cy + (int)(size * 0.12f) }
-            };
-            Polyline(hdc, arr2, 3);
+                // Lower arrowhead
+                PointF arr2[3] = {
+                    { cx - r - fs * 0.12f, cy + fs * 0.12f },
+                    { cx - r, cy },
+                    { cx - r + fs * 0.12f, cy + fs * 0.12f }
+                };
+                GdipDrawLines(gfx, pen, arr2, 3);
+            }
             break;
         }
 
@@ -733,14 +875,13 @@ void DrawVectorIcon(HDC hdc, IconId icon, int x, int y, int size, COLORREF color
             break;
     }
 
-    SelectObject(hdc, old_brush);
-    SelectObject(hdc, old_pen);
-    DeleteObject(pen);
-    DeleteObject(fill_brush);
+    if (fill) GdipDeleteBrush((GpBrush*)fill);
+    if (pen) GdipDeletePen(pen);
+    if (gfx) GdipDeleteGraphics(gfx);
 }
 
 void DrawVectorIconCentered(HDC hdc, IconId icon, const RECT* rect, int size, COLORREF color) {
-    if (!rect || icon == ICON_NONE || size <= 0) return;
+    if (!rect || icon == ICON_NONE || size <= 0 || !hdc) return;
     int w = rect->right - rect->left;
     int h = rect->bottom - rect->top;
     int ix = rect->left + (w - size) / 2;
@@ -753,7 +894,7 @@ void DrawVectorIconCentered(HDC hdc, IconId icon, const RECT* rect, int size, CO
 // ============================================================================
 void DrawIndustrialButtonWithIcon(HDC hdc, const RECT* rect, IconId icon, const wchar_t* text, 
                                  bool is_hovered, bool is_primary, bool is_danger, bool is_active_toggle) {
-    if (!rect) return;
+    if (!rect || !hdc) return;
     
     COLORREF fill_top, fill_bottom, border, text_col;
     
@@ -851,7 +992,7 @@ void DrawIndustrialButtonWithIcon(HDC hdc, const RECT* rect, IconId icon, const 
 // ============================================================================
 void DrawHudBadgeWithIcon(HDC hdc, int x, int y, IconId icon, const wchar_t* text, 
                           COLORREF bg_col, COLORREF text_col, COLORREF border_col, RECT* out_rect) {
-    if (!text) return;
+    if (!text || !hdc) return;
     
     SetBkMode(hdc, TRANSPARENT);
     HGDIOBJ old_font = SelectObject(hdc, g_theme_fonts.font_mono_small);
@@ -880,8 +1021,5 @@ void DrawHudBadgeWithIcon(HDC hdc, int x, int y, IconId icon, const wchar_t* tex
     DrawTextW(hdc, text, -1, &tr, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     
     SelectObject(hdc, old_font);
-    
-    if (out_rect) {
-        *out_rect = rc;
-    }
+    if (out_rect) *out_rect = rc;
 }

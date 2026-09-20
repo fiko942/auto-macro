@@ -78,9 +78,11 @@ Constructed from a 7-point polygon with normalized vertex coordinates:
 - Center dot: Solid ellipse $2 \times 2$ px.
 - 4 Crosshair ticks: Stems extending inward from outer perimeter.
 
-### 3.3 Repeat Cycle (`ICON_REPEAT`)
-- Upper path: Arc / rounded line moving left-to-right with arrowhead at $(x + \text{size} - 2, y + \text{size}/3)$.
-- Lower path: Arc / rounded line moving right-to-left with arrowhead at $(x + 2, y + 2\text{size}/3)$.
+### 3.4 In-App Resource Icon Rendering (`IDI_APP_ICON`)
+For the main brand icon in the title bar, sidebar card, and modal dialogs:
+- The embedded Windows resource `IDI_APP_ICON` is loaded on demand using `LoadImageW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON, size, size, LR_DEFAULTCOLOR)` with static caching.
+- Drawn using `DrawIconEx(hdc, x, y, hIcon, size, size, 0, NULL, DI_NORMAL)`.
+- If the resource cannot be loaded, it falls back seamlessly to the geometric `DrawVectorIcon(hdc, ICON_BOLT, ...)`.
 
 ---
 
