@@ -26,3 +26,4 @@ appdata/
 *.log
 output/
 test_benchmark.exe
+*.res

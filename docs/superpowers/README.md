@@ -28,7 +28,8 @@ docs/superpowers/
     ├── 2026-09-20-ui-visual-audit-and-native-polish.md # Visual polish audit
     ├── 2026-09-21-native-c-rewrite-and-vector-icon-engine.md # Complete C rewrite & Vector icon engine
     ├── 2026-09-21-multi-trigger-and-modifier-combos.md # Multi-trigger & modifier combos implementation plan
-    └── 2026-09-21-unlimited-triggers-and-modifier-release-fix.md # Unlimited triggers (32/macro), 6-row view & modifier fix
+    ├── 2026-09-21-unlimited-triggers-and-modifier-release-fix.md # Unlimited triggers (32/macro), 6-row view & modifier fix
+    └── 2026-09-21-application-icon-and-resource-integration.md # Native .ico generation, resource embedding & README branding
 ```
 
 ---

@@ -2,6 +2,7 @@
 #include "theme.h"
 #include "animation.h"
 #include "ui_dialogs.h"
+#include "../resource.h"
 #include "../core/macro_engine.h"
 #include "../storage/config_manager.h"
 #include "../common/utils.h"
@@ -116,13 +117,18 @@ static void OnEngineStatusChanged(bool is_active) {
 }
 
 static void SetupTrayIcon(HWND hwnd) {
+    HINSTANCE hInst = GetModuleHandle(NULL);
+    HICON hIcon = (HICON)LoadImage(hInst, MAKEINTRESOURCE(IDI_APP_ICON), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+    if (!hIcon) hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_APP_ICON));
+    if (!hIcon) hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    
     memset(&g_main_state.tray_data, 0, sizeof(NOTIFYICONDATAW));
     g_main_state.tray_data.cbSize = sizeof(NOTIFYICONDATAW);
     g_main_state.tray_data.hWnd = hwnd;
     g_main_state.tray_data.uID = 1;
     g_main_state.tray_data.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     g_main_state.tray_data.uCallbackMessage = WM_TRAYICON;
-    g_main_state.tray_data.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    g_main_state.tray_data.hIcon = hIcon;
     wcscpy_s(g_main_state.tray_data.szTip, 128, L"Tobelsoft Macro (Gaming Tool)");
     Shell_NotifyIconW(NIM_ADD, &g_main_state.tray_data);
 }
@@ -1955,16 +1961,20 @@ int RunMainWindow(HINSTANCE hInstance, int nCmdShow) {
     MacroEngine_SetConfig(&g_main_state.config);
     MacroEngine_SetStatusChangedCallback(OnEngineStatusChanged);
     
-    WNDCLASSW wc = {0};
+    WNDCLASSEXW wc = {0};
+    wc.cbSize = sizeof(WNDCLASSEXW);
     wc.style = CS_DBLCLKS;
     wc.lpfnWndProc = MainWndProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = L"TobelsoftMacroMainWindowClass";
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_APP_ICON));
+    wc.hIconSm = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_APP_ICON), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+    if (!wc.hIcon) wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    if (!wc.hIconSm) wc.hIconSm = wc.hIcon;
     wc.hbrBackground = NULL; // Handled by WM_PAINT double buffering
     
-    RegisterClassW(&wc);
+    RegisterClassExW(&wc);
     
     // Center Window on Primary Display
     int screen_w = GetSystemMetrics(SM_CXSCREEN);
@@ -1989,6 +1999,9 @@ int RunMainWindow(HINSTANCE hInstance, int nCmdShow) {
         CloseHandle(hMutex);
         return 1;
     }
+    
+    SendMessageW(hwnd, WM_SETICON, ICON_BIG, (LPARAM)wc.hIcon);
+    SendMessageW(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)wc.hIconSm);
     
     g_main_state.hwnd = hwnd;
     ShowWindow(hwnd, nCmdShow);

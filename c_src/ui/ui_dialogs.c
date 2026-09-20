@@ -1,6 +1,7 @@
 #include "ui_dialogs.h"
 #include "theme.h"
 #include "ui_icons.h"
+#include "../resource.h"
 #include "../core/input_hook.h"
 #include "../common/utils.h"
 #include <windowsx.h>
@@ -247,6 +248,7 @@ bool ShowInputCaptureDialog(HWND parent_hwnd, const char* title, char* out_key_n
         wc.hInstance = GetModuleHandle(NULL);
         wc.lpszClassName = L"TobelsoftCaptureDialogClass";
         wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+        wc.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_APP_ICON));
         RegisterClassW(&wc);
         class_registered = true;
     }
@@ -1927,6 +1929,7 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
         wc.hInstance = GetModuleHandle(NULL);
         wc.lpszClassName = L"TobelsoftAddEditDialogClass";
         wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+        wc.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_APP_ICON));
         RegisterClassW(&wc);
         class_registered = true;
     }
