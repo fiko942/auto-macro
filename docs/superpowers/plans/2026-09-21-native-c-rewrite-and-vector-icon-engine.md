@@ -1,6 +1,6 @@
 # Native C Rewrite & High-Precision Vector Icon Engine Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Completely replace legacy Python/PyQt6 architecture with an ultra-low-latency Native C11 Win32 application featuring a custom GDI Vector Icon Engine, sub-microsecond DirectInput hardware scancode dispatch (<0.001 ms), zero Unicode emoji font dependencies, and seamless cyberpunk HUD interface.
 
@@ -32,7 +32,7 @@
 - Consumes: Windows GDI (`HDC`, `HPEN`, `HBRUSH`, `COLORREF`, `POINT`, `Polyline`, `Polygon`, `Rectangle`, `Ellipse`)
 - Produces: `DrawVectorIcon(HDC hdc, IconId icon, int x, int y, int size, COLORREF color, int stroke_width)`, `DrawVectorIconCentered(HDC hdc, IconId icon, RECT rc, int size, COLORREF color, int stroke_width)`, `DrawIndustrialButtonWithIcon(...)`, `DrawHudBadgeWithIcon(...)`
 
-- [ ] **Step 1: Define Icon Enumerations and Function Signatures**
+- [x] **Step 1: Define Icon Enumerations and Function Signatures**
 
 Create `c_src/ui/ui_icons.h` defining all application vector icon identifiers:
 ```c
@@ -90,7 +90,7 @@ void DrawHudBadgeWithIcon(HDC hdc, RECT rect, const wchar_t* text, IconId icon,
 #endif // UI_ICONS_H
 ```
 
-- [ ] **Step 2: Implement Geometric GDI Path Routines for All Icons**
+- [x] **Step 2: Implement Geometric GDI Path Routines for All Icons**
 
 Implement `c_src/ui/ui_icons.c` with pure trigonometric and coordinate-scaled GDI primitives for every `IconId` (e.g., lightning bolt polygon, 6-tooth gear, circular info badge, target reticle with crosshairs, shield outline, repeat double-arrow loop, key hold lock, trash can, edit pencil, play triangle, stop square):
 ```c
@@ -147,7 +147,7 @@ void DrawVectorIcon(HDC hdc, IconId icon, int x, int y, int size, COLORREF color
 }
 ```
 
-- [ ] **Step 3: Update `build.bat` and Verify Compilation**
+- [x] **Step 3: Update `build.bat` and Verify Compilation**
 
 Add `c_src\ui\ui_icons.c` to `SRC_FILES` in `build.bat`. Run `build.bat` and verify successful compilation with 0 warnings.
 
@@ -164,7 +164,7 @@ Add `c_src\ui\ui_icons.c` to `SRC_FILES` in `build.bat`. Run `build.bat` and ver
 - Consumes: `IconId`, `DrawVectorIcon` from `c_src/ui/ui_icons.h`
 - Produces: `DrawActionPillWithIconW(...)`, `DrawSleekEngineToggle(...)`
 
-- [ ] **Step 1: Update Theme Header Signatures**
+- [x] **Step 1: Update Theme Header Signatures**
 
 In `c_src/ui/theme.h`, add icon-aware action pill drawing functions:
 ```c
@@ -175,7 +175,7 @@ void DrawActionPillWithIconW(HDC hdc, RECT rect, const wchar_t* text, IconId ico
                              HFONT font, bool is_compact);
 ```
 
-- [ ] **Step 2: Implement Vector-Aware Action Pills in `theme.c`**
+- [x] **Step 2: Implement Vector-Aware Action Pills in `theme.c`**
 
 Modify `c_src/ui/theme.c` to render pills with vector icons instead of unicode character prefixes, automatically computing text and icon offset bounds:
 ```c
@@ -215,7 +215,7 @@ void DrawActionPillWithIconW(HDC hdc, RECT rect, const wchar_t* text, IconId ico
 }
 ```
 
-- [ ] **Step 3: Verify Compilation**
+- [x] **Step 3: Verify Compilation**
 
 Run `build.bat` to ensure all theme modifications link cleanly.
 
@@ -231,15 +231,15 @@ Run `build.bat` to ensure all theme modifications link cleanly.
 - Consumes: `ui_icons.h`, `theme.h`, `macro_engine.h`, `config_manager.h`
 - Produces: Complete Native Win32 Cyberpunk HUD UI with zero Unicode emoji dependencies
 
-- [ ] **Step 1: Replace Titlebar and Window Control Glyphs**
+- [x] **Step 1: Replace Titlebar and Window Control Glyphs**
 
 Refactor `DrawModernWindowHeader` in `c_src/ui/main_window.c` to draw `ICON_BOLT` for HUD logo, `ICON_MINIMIZE`, `ICON_MAXIMIZE`/`ICON_RESTORE`, and `ICON_CLOSE` for window controls using `DrawVectorIconCentered`.
 
-- [ ] **Step 2: Refactor Navigation Items and Action Buttons**
+- [x] **Step 2: Refactor Navigation Items and Action Buttons**
 
 Update navigation sidebar (`NAV_MACROS` -> `ICON_BOLT`, `NAV_SETTINGS` -> `ICON_SETTINGS`, `NAV_ABOUT` -> `ICON_INFO`), action toolbar buttons (`+ Add Hotkey` -> `ICON_PLUS`, `Import` -> `ICON_IMPORT`, `Export` -> `ICON_EXPORT`), and master toggle (`ICON_PLAY` / `ICON_STOP`).
 
-- [ ] **Step 3: Refactor Macro Bento Cards Action Sequence Pills**
+- [x] **Step 3: Refactor Macro Bento Cards Action Sequence Pills**
 
 Update `DrawMacroBentoCard` to render action sequence steps with corresponding vector icons:
 - `ACTION_KEY_PRESS` -> `ICON_BOLT`
@@ -250,7 +250,7 @@ Update `DrawMacroBentoCard` to render action sequence steps with corresponding v
 - Suppress input badge -> `ICON_SHIELD`
 - Trigger key badge -> `ICON_TARGET`
 
-- [ ] **Step 4: Verify Compilation**
+- [x] **Step 4: Verify Compilation**
 
 Run `build.bat` and verify clean build.
 
@@ -267,11 +267,11 @@ Run `build.bat` and verify clean build.
 - Consumes: `ui_icons.h`, `theme.h`, `input_hook.h`, `types.h`
 - Produces: DirectInput Capture HUD modal, Action Step listbox custom drawing, Cyber dropdowns
 
-- [ ] **Step 1: Refactor DirectInput Capture HUD Animation and Target Reticle**
+- [x] **Step 1: Refactor DirectInput Capture HUD Animation and Target Reticle**
 
 In `c_src/ui/ui_dialogs.c`, replace unicode crosshair in `CaptureDlgProc` with dynamic pulsing `ICON_TARGET` and `ICON_KEYBOARD` vector icons.
 
-- [ ] **Step 2: Refactor Action Step Custom Draw Listbox**
+- [x] **Step 2: Refactor Action Step Custom Draw Listbox**
 
 Update `DrawModernActionItem` to draw:
 - Drag Grip Handle: `ICON_GRIP`
@@ -279,11 +279,11 @@ Update `DrawModernActionItem` to draw:
 - Action Type Pill: `ICON_BOLT`, `ICON_ARROW_DOWN`, `ICON_ARROW_UP`, `ICON_CLOCK`, `ICON_LOCK`
 - Remove Button: `ICON_TRASH`
 
-- [ ] **Step 3: Refactor Trigger Crosshair and Editing Badges**
+- [x] **Step 3: Refactor Trigger Crosshair and Editing Badges**
 
 Update modal titlebar (`ICON_PLUS` / `ICON_EDIT`), trigger capture button (`ICON_TARGET`), and save button (`ICON_SAVE`).
 
-- [ ] **Step 4: Verify Clean Source (Zero Non-ASCII Characters)**
+- [x] **Step 4: Verify Clean Source (Zero Non-ASCII Characters)**
 
 Execute verification to guarantee no residual unicode glyphs remain in any source file:
 ```bash
@@ -304,17 +304,17 @@ Expected: 0 matches.
 - Consumes: `QueryPerformanceCounter`, `QueryPerformanceFrequency`, `input_sender.h`, `input_hook.h`
 - Produces: Verified sub-microsecond latency benchmarks and zero-flicker UI execution
 
-- [ ] **Step 1: Build Test Benchmark**
+- [x] **Step 1: Build Test Benchmark**
 
 Compile `c_src/tests/test_benchmark.c` and execute performance profiling.
 Expected: Hook matching < 0.001 ms, input injection < 0.05 ms.
 
-- [ ] **Step 2: Build Final Standalone Release Executable**
+- [x] **Step 2: Build Final Standalone Release Executable**
 
 Run `build.bat`.
 Expected: `TobelsoftMacro.exe` built with 0 errors and 0 warnings.
 
-- [ ] **Step 3: Update README and Documentation**
+- [x] **Step 3: Update README and Documentation**
 
 Update `README.md` with complete architecture specifications, vector icon engine documentation, performance metrics, and build instructions.
 
