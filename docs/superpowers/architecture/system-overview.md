@@ -82,17 +82,29 @@ typedef struct {
 } ActionStep;
 ```
 
-### 3.2 `MacroItem`
-Represents a complete automated macro profile:
+### 3.2 `HotkeyTrigger` & `MacroItem`
+Represents independent activation triggers and a complete automated macro profile:
 ```c
+#define MAX_TRIGGERS_PER_MACRO 8
+
+typedef struct {
+    TriggerType type;       // TRIGGER_TYPE_KEYBOARD or TRIGGER_TYPE_MOUSE
+    DWORD vk_code;          // Virtual Key code or 0 for mouse
+    DWORD mouse_button;     // 1=Left, 2=Right, 3=Middle, 4=X1, 5=X2
+    uint8_t modifiers;      // Bitmask: MODIFIER_CTRL | MODIFIER_SHIFT | MODIFIER_ALT | MODIFIER_WIN
+    char raw_combo[64];     // Normalized representation (e.g. "ctrl+mouse_left")
+} HotkeyTrigger;
+
 typedef struct {
     char id[64];
     wchar_t name[128];
     bool is_enabled;
     bool is_executing;
-    TriggerType trigger_type;
-    DWORD trigger_vk;
-    DWORD trigger_mouse_btn;
+    
+    // Multi-Trigger Configuration
+    HotkeyTrigger triggers[MAX_TRIGGERS_PER_MACRO];
+    int trigger_count;
+    
     bool suppress_original_input;
     bool left_click_safety_lock;
     int repeat_count;       // 0 = infinite while held

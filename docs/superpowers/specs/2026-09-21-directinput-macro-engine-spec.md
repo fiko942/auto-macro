@@ -23,12 +23,12 @@ HHOOK g_kbd_hook = SetWindowsHookExW(WH_KEYBOARD_LL, LowLevelKeyboardProc, GetMo
 HHOOK g_mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, LowLevelMouseProc, GetModuleHandleW(NULL), 0);
 ```
 
-### 2.2 Callback Execution & O(1) Evaluation Loop
+### 2.2 Callback Execution & Multi-Trigger Evaluation Loop
 The hook procedure executes in user space before the active application receives the message:
 
 ```c
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
-    if (nCode == HC_ACTION && g_macro_engine_active) {
+    if (nCode == HC_ACTION) {
         KBDLLHOOKSTRUCT* kbd = (KBDLLHOOKSTRUCT*)lParam;
         
         // Check for injected synthetic events to prevent infinite feedback loops
@@ -40,14 +40,40 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         bool is_down = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
         bool is_up = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP);
 
+        // Update atomic modifier tracking state
+        UpdateModifierState((WORD)vk, is_down);
+
+        // Modal Capture Interception Mode
+        if (g_bCapturing) {
+            if (vk == VK_ESCAPE && is_down) {
+                InputHook_StopCapture();
+                if (g_capture_hwnd) PostMessageW(g_capture_hwnd, WM_USER + 101, 0, 0);
+                return 1;
+            }
+            if (vk == VK_LWIN || vk == VK_RWIN) {
+                // Suppress Windows Start menu popup during capture
+                return 1;
+            }
+            if (is_down && !IsModifierKey((WORD)vk)) {
+                uint8_t mods = InputHook_GetLiveModifiers();
+                char combo[64];
+                BuildComboString(mods, vk, 0, combo, sizeof(combo));
+                InputHook_StopCapture();
+                if (g_capture_cb) g_capture_cb(combo);
+                return 1;
+            }
+            return (vk == VK_LWIN || vk == VK_RWIN) ? 1 : CallNextHookEx(NULL, nCode, wParam, lParam);
+        }
+
         // Emergency Kill-Switch Evaluation
         if (vk == VK_ESCAPE && is_down) {
             EmergencyStopAllMacros();
             return CallNextHookEx(NULL, nCode, wParam, lParam);
         }
 
-        // Direct Trigger Match
-        MacroItem* matched = FindActiveMacroByTrigger(TRIGGER_TYPE_KEYBOARD, vk);
+        // Multi-Trigger Match Evaluation
+        uint8_t current_mods = InputHook_GetLiveModifiers();
+        MacroItem* matched = FindActiveMacroByTrigger(TRIGGER_TYPE_KEYBOARD, vk, 0, current_mods);
         if (matched) {
             if (is_down && !matched->is_executing) {
                 TriggerMacroAsync(matched);

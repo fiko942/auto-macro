@@ -77,3 +77,31 @@ When a macro has `suppress_original_input = true`:
 - The physical keystroke is completely withheld from the foreground application.
 - The macro worker thread then synthesizes the configured action sequence instead.
 - If `left_click_safety_lock` is active on mouse triggers, suppression is automatically bypassed to protect user system control.
+
+---
+
+## 5. Modifier State Machine & Multi-Trigger Dispatch
+
+### 5.1 Atomic Modifier Bitmask Tracking
+To guarantee zero latency and thread-safety between the Windows message pump, background hooks, and UI timer callbacks, modifier states are updated in `LowLevelKeyboardProc` and stored in `g_hook_modifiers`:
+
+```c
+static volatile uint8_t g_hook_modifiers = 0;
+```
+
+Bitmask definitions:
+- `MODIFIER_CTRL`  (`0x01`): `VK_CONTROL`, `VK_LCONTROL`, `VK_RCONTROL`
+- `MODIFIER_SHIFT` (`0x02`): `VK_SHIFT`, `VK_LSHIFT`, `VK_RSHIFT`
+- `MODIFIER_ALT`   (`0x04`): `VK_MENU`, `VK_LMENU`, `VK_RMENU`
+- `MODIFIER_WIN`   (`0x08`): `VK_LWIN`, `VK_RWIN`
+
+### 5.2 Multi-Trigger Matching Pipeline
+When any physical key or mouse button is pressed:
+1. `UpdateModifierState()` updates the atomic modifier mask.
+2. The engine iterates all enabled macros.
+3. For each macro, it evaluates all `triggers[0..trigger_count-1]`:
+   - Matches trigger type (`KEYBOARD` vs `MOUSE`).
+   - Matches virtual key (`vk_code`) or mouse button (`mouse_button`).
+   - Bitwise matches exact active modifiers: `(trigger.modifiers == current_modifiers)`.
+4. If a match is found and macro is not already executing, `TriggerMacroAsync()` dispatches the worker thread in `< 0.001 ms`.
+

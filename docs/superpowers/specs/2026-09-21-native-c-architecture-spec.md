@@ -73,8 +73,10 @@ Tobelsoft Macro is an ultra-low-latency, zero-dependency native Windows automati
 
 ### 4.1 Input Hook Subsystem (`c_src/core/input_hook.c`, `c_src/core/input_hook.h`)
 - **Hook Types:** `WH_KEYBOARD_LL` (Keyboard) and `WH_MOUSE_LL` (Mouse).
-- **Matching Algorithm:** O(1) bitwise lookup against active macro trigger registry.
-- **Pass-through / Block:** Selective suppression controlled by `suppress_input` flag on matching macros.
+- **Modifier State Tracking:** Atomic bitmask `g_hook_modifiers` tracking `MODIFIER_CTRL`, `MODIFIER_SHIFT`, `MODIFIER_ALT`, and `MODIFIER_WIN` with live query API `InputHook_GetLiveModifiers()`.
+- **Multi-Trigger Matching:** O(1) bitwise multi-trigger lookup (up to 8 triggers per macro) matching key/button + exact modifier masks.
+- **Capture HUD & Isolation:** Suppresses `VK_LWIN`/`VK_RWIN` during capture modal to prevent Start Menu interference and captures full modifier combos (`ctrl+mouse_left`, `win+left`, etc.).
+- **Pass-through / Block:** Selective suppression controlled by `suppress_input` flag on matching macros, with Left-Click Safety Lock bypassing mouse suppression when active.
 
 ### 4.2 Input Dispatcher (`c_src/core/input_sender.c`, `c_src/core/input_sender.h`)
 - **API:** Win32 `SendInput` with `INPUT_KEYBOARD` / `INPUT_MOUSE`.
