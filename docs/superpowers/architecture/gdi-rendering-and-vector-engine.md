@@ -90,3 +90,14 @@ All UI controls are implemented via custom Win32 message interception:
 1. **Sleek Toggle Switches:** Animated pill toggle with ease-out sliding knob and color transition (`#10B981` active / `#1E2330` inactive).
 2. **Action Step Listbox:** Owner-drawn listbox (`LBS_OWNERDRAWVARIABLE`) responding to `WM_DRAWITEM` and `WM_MEASUREITEM`, rendering drag grips, step badges, action icons, and delete buttons.
 3. **Cyberpunk Dropdown / Combobox:** Owner-drawn combobox with custom arrow rendering and dark menu dropdown palette.
+
+---
+
+## 5. Responsive Bento Card Signal Flow & Multi-Trigger Layout Budgeting
+
+In `c_src/ui/main_window.c`, macro cards in the Macro Hub dynamically display multi-trigger combinations and action execution pipelines while guaranteeing zero visual collision with interactive switch and action buttons:
+1. **Strict Spatial Boundaries:** Right-aligned interactive controls (Mechanical Switch at `card_rc.right - 190`, Edit Button at `card_rc.right - 128`, Delete Button at `card_rc.right - 64`) define a strict rightmost boundary of `max_flow_x = card_rc.right - 210`.
+2. **Proportional Trigger Budgeting:** The trigger section is allocated a maximum width budget (~45% of available flow width). Up to 2 triggers are drawn inline as tactical keycaps (`[ mouse_left ] / [ ctrl+mouse_left ]`). If additional triggers exceed the budget or total trigger count is high, an overflow HUD badge (`[ +N keys ]`) is rendered seamlessly.
+3. **Card Header Multi-Trigger Indicator:** Pipelines with multiple triggers display an elevated HUD badge in the card title row (`[ N TRIGGERS ]`) alongside `[ PIPE #01 ]`.
+4. **Action Sequence Overflow Containment:** Action sequence nodes (`[ ⚡ 3 ] ➔ [ ⚡ 1 ] ➔ [ ⚡ Q ]`) dynamically evaluate remaining horizontal space before rendering each step. If remaining actions would encroach on `max_flow_x`, the loop terminates cleanly and displays a `[ +N more ]` badge, ensuring the signal flow remains pixel-perfect across all screen resolutions.
+

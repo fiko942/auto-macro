@@ -580,12 +580,53 @@ static void DrawHotkeysPage(HDC hdc, int x, int y, int width, int height) {
         RECT pipe_pill_rc;
         DrawHudBadge(hdc, title_rc.right + 10, cy + 14, pipe_tag, COLOR_BG_VOID, COLOR_TEXT_MUTED, COLOR_BORDER_SUBTLE, &pipe_pill_rc);
         
+        // Multiple Triggers Count Indicator Badge in Header
+        if (b->trigger_count > 1) {
+            wchar_t trig_tag[32];
+            swprintf_s(trig_tag, 32, L"%d TRIGGERS", b->trigger_count);
+            RECT trig_pill_rc;
+            DrawHudBadgeWithIcon(hdc, pipe_pill_rc.right + 8, cy + 14, ICON_KEYBOARD, trig_tag, COLOR_NEON_CYAN_DIM, COLOR_NEON_CYAN, RGB(0, 180, 200), &trig_pill_rc);
+        }
+        
         // 2. Hardware Signal Flow Diagram
         int flow_y = cy + 44;
         int flow_x = card_rc.left + 24;
+        int max_flow_x = card_rc.right - 210; // Strict boundary before Switch, Edit & Delete buttons
+        int total_avail_flow = max_flow_x - flow_x;
+        if (total_avail_flow < 150) total_avail_flow = 150;
         
-        // Trigger Keycaps
+        // Trigger section width budget (allocate up to ~45% of available space for triggers so actions always fit)
+        int trig_section_budget = (total_avail_flow * 45) / 100;
+        if (trig_section_budget < 180) trig_section_budget = 180;
+        if (trig_section_budget > 320) trig_section_budget = 320;
+        int max_trig_x = flow_x + trig_section_budget;
+        
+        // Trigger Keycaps rendering with automatic overflow containment
         for (int t = 0; t < b->trigger_count && t < MAX_TRIGGERS_PER_BINDING; t++) {
+            wchar_t wkey[MAX_KEY_NAME_LEN * 2];
+            MultiByteToWideChar(CP_UTF8, 0, b->trigger_keys[t], -1, wkey, MAX_KEY_NAME_LEN * 2);
+            
+            SelectObject(hdc, g_theme_fonts.font_mono_keycap);
+            SIZE key_sz;
+            GetTextExtentPoint32W(hdc, wkey, (int)wcslen(wkey), &key_sz);
+            int est_chip_w = key_sz.cx + 20;
+            if (est_chip_w < 32) est_chip_w = 32;
+            
+            int sep_w = (t > 0) ? 22 : 0;
+            int needed_w = sep_w + est_chip_w;
+            int remaining_trigs = b->trigger_count - t;
+            int more_badge_w = (remaining_trigs > 1) ? 75 : 0;
+            
+            // Check if adding this trigger chip exceeds our trigger section budget
+            if (t > 0 && (flow_x + needed_w + more_badge_w > max_trig_x || flow_x + needed_w + 120 > max_flow_x)) {
+                wchar_t more_trig_buf[32];
+                swprintf_s(more_trig_buf, 32, L"+%d keys", remaining_trigs);
+                RECT more_trig_pill;
+                DrawHudBadge(hdc, flow_x + 4, flow_y + 2, more_trig_buf, COLOR_NEON_CYAN_DIM, COLOR_NEON_CYAN, RGB(0, 180, 200), &more_trig_pill);
+                flow_x = more_trig_pill.right + 4;
+                break;
+            }
+            
             if (t > 0) {
                 SetTextColor(hdc, COLOR_TEXT_MUTED);
                 SelectObject(hdc, g_theme_fonts.font_mono_small);
@@ -593,24 +634,26 @@ static void DrawHotkeysPage(HDC hdc, int x, int y, int width, int height) {
                 DrawTextW(hdc, L"/", -1, &or_rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                 flow_x += 22;
             }
+            
             RECT trig_chip;
             DrawKeycapChipA(hdc, flow_x, flow_y, b->trigger_keys[t], &trig_chip);
             flow_x = trig_chip.right + 4;
         }
         
         // Pulsing Neon Signal Flow Laser Connector
-        DrawPulsingSignalFlowConnector(hdc, flow_x + 4, flow_y + 13, 26, 
-            b->enabled ? COLOR_NEON_CYAN : COLOR_TEXT_DIM, g_anim_state.pulse_phase, (b->enabled && is_engine_armed));
-        flow_x += 38;
+        int conn_w = 26;
+        if (flow_x + conn_w + 80 > max_flow_x) {
+            conn_w = (max_flow_x - flow_x > 20) ? (max_flow_x - flow_x - 10) : 14;
+        }
+        if (conn_w < 10) conn_w = 10;
         
-        // Action Sequence Nodes
-        for (int a = 0; a < b->action_count && a < 4; a++) {
+        DrawPulsingSignalFlowConnector(hdc, flow_x + 4, flow_y + 13, conn_w, 
+            b->enabled ? COLOR_NEON_CYAN : COLOR_TEXT_DIM, g_anim_state.pulse_phase, (b->enabled && is_engine_armed));
+        flow_x += conn_w + 10;
+        
+        // Action Sequence Nodes rendering with strict bounds checking
+        for (int a = 0; a < b->action_count; a++) {
             const KeyAction* act = &b->actions[a];
-            if (a > 0) {
-                DrawPulsingSignalFlowConnector(hdc, flow_x + 2, flow_y + 13, 14, 
-                    b->enabled ? COLOR_NEON_CYAN : COLOR_TEXT_DIM, g_anim_state.pulse_phase, (b->enabled && is_engine_armed));
-                flow_x += 20;
-            }
             
             wchar_t act_desc[64];
             COLORREF act_col = COLOR_NEON_CYAN;
@@ -662,16 +705,37 @@ static void DrawHotkeysPage(HDC hdc, int x, int y, int width, int height) {
                 act_icon = ICON_ARROW_DOWN;
             }
             
+            SelectObject(hdc, g_theme_fonts.font_mono_small);
+            SIZE act_sz;
+            GetTextExtentPoint32W(hdc, act_desc, (int)wcslen(act_desc), &act_sz);
+            int est_act_pill_w = act_sz.cx + 16 + 18;
+            int act_conn_w = (a > 0) ? 20 : 0;
+            int remaining_actions = b->action_count - a;
+            int more_act_w = (remaining_actions > 1) ? 65 : 0;
+            
+            if (flow_x + act_conn_w + est_act_pill_w + more_act_w > max_flow_x) {
+                wchar_t more_buf[32];
+                swprintf_s(more_buf, 32, L"+%d more", remaining_actions);
+                RECT more_pill;
+                DrawHudBadge(hdc, flow_x + 4, flow_y + 2, more_buf, COLOR_BG_VOID, COLOR_TEXT_MUTED, COLOR_BORDER_SUBTLE, &more_pill);
+                flow_x = more_pill.right + 4;
+                break;
+            }
+            
+            if (a > 0) {
+                DrawPulsingSignalFlowConnector(hdc, flow_x + 2, flow_y + 13, 14, 
+                    b->enabled ? COLOR_NEON_CYAN : COLOR_TEXT_DIM, g_anim_state.pulse_phase, (b->enabled && is_engine_armed));
+                flow_x += 20;
+            }
+            
             RECT act_pill;
-            DrawActionPillWithIconW(hdc, flow_x, flow_y, act_icon, act_desc, act_col, &act_pill);
+            DrawActionPillWithIconW(hdc, flow_x, flow_y + 2, act_icon, act_desc, act_col, &act_pill);
             flow_x = act_pill.right + 4;
         }
         
-        if (b->action_count > 4) {
-            wchar_t more_buf[32];
-            swprintf_s(more_buf, 32, L"+%d more", b->action_count - 4);
-            RECT more_pill;
-            DrawHudBadge(hdc, flow_x + 6, flow_y, more_buf, COLOR_BG_VOID, COLOR_TEXT_MUTED, COLOR_BORDER_SUBTLE, &more_pill);
+        if (b->action_count == 0) {
+            RECT empty_pill;
+            DrawHudBadge(hdc, flow_x, flow_y + 2, L"NO ACTIONS", COLOR_BG_VOID, COLOR_TEXT_MUTED, COLOR_BORDER_SUBTLE, &empty_pill);
         }
         
         // 3. Execution Badges
