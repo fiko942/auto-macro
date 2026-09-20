@@ -22,6 +22,7 @@ typedef struct {
 } CaptureDialogState;
 
 static CaptureDialogState g_capture_state;
+static uint8_t g_last_live_mods = 0;
 
 static void OnCaptureFinished(const char* key_name, const char* display_name) {
     (void)display_name;
@@ -38,8 +39,20 @@ static void OnCaptureFinished(const char* key_name, const char* display_name) {
 static LRESULT CALLBACK CaptureWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
         case WM_CREATE:
+            SetTimer(hwnd, 1001, 30, NULL);
             return 0;
             
+        case WM_TIMER: {
+            if (wParam == 1001) {
+                uint8_t current_mods = InputHook_GetLiveModifiers();
+                if (current_mods != g_last_live_mods) {
+                    g_last_live_mods = current_mods;
+                    InvalidateRect(hwnd, NULL, FALSE);
+                }
+            }
+            return 0;
+        }
+
         case WM_LBUTTONDOWN: {
             int y = GET_Y_LPARAM(lParam);
             if (y < 34) {
@@ -114,33 +127,84 @@ static LRESULT CALLBACK CaptureWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             RECT hud_card = { 16, 46, rc.right - 16, rc.bottom - 16 };
             DrawRoundedRect(hdc, &hud_card, 6, COLOR_BG_CARD, COLOR_BORDER_SUBTLE, 1);
             
-            // Capture Prompt Header with Vector Reticle
-            SetTextColor(hdc, COLOR_TEXT_PRIMARY);
-            SelectObject(hdc, g_theme_fonts.font_title);
-            SIZE pr_sz;
-            GetTextExtentPoint32W(hdc, L"Press any Key or Mouse Button...", 32, &pr_sz);
-            int total_pr_w = 20 + 10 + pr_sz.cx;
-            int pr_start_x = (rc.right - total_pr_w) / 2;
-            DrawVectorIcon(hdc, ICON_TARGET, pr_start_x, 62, 18, COLOR_NEON_CYAN);
-            RECT pr_rc = { pr_start_x + 26, 60, pr_start_x + 26 + pr_sz.cx + 10, 86 };
-            DrawTextW(hdc, L"Press any Key or Mouse Button...", -1, &pr_rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+            uint8_t live_mods = InputHook_GetLiveModifiers();
+            if (live_mods != 0) {
+                // Live held modifiers display
+                int chip_x = 32;
+                int chip_y = 58;
+                
+                SetTextColor(hdc, COLOR_TEXT_PRIMARY);
+                SelectObject(hdc, g_theme_fonts.font_body_bold);
+                RECT mod_hdr = { 32, 54, rc.right - 32, 72 };
+                DrawTextW(hdc, L"HOLDING MODIFIERS DETECTED:", -1, &mod_hdr, DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
+                
+                chip_y = 78;
+                
+                // Draw active modifier chips
+                struct { uint8_t mask; const wchar_t* name; COLORREF col; } mods_list[] = {
+                    { MODIFIER_CTRL,  L"CTRL",  COLOR_NEON_CYAN },
+                    { MODIFIER_WIN,   L"WIN",   COLOR_NEON_PURPLE },
+                    { MODIFIER_ALT,   L"ALT",   COLOR_NEON_AMBER },
+                    { MODIFIER_SHIFT, L"SHIFT", COLOR_NEON_INDIGO }
+                };
+                
+                int total_w = 0;
+                for (int i = 0; i < 4; i++) {
+                    if (live_mods & mods_list[i].mask) {
+                        total_w += 64 + 8; // chip width + gap
+                    }
+                }
+                total_w += 140; // width for "+ [ PRESS KEY / CLICK ]"
+                chip_x = (rc.right - total_w) / 2;
+                if (chip_x < 24) chip_x = 24;
+                
+                for (int i = 0; i < 4; i++) {
+                    if (live_mods & mods_list[i].mask) {
+                        RECT out_rc;
+                        DrawHudBadgeWithIcon(hdc, chip_x, chip_y, ICON_LOCK, mods_list[i].name, RGB(18, 24, 38), mods_list[i].col, mods_list[i].col, &out_rc);
+                        chip_x = out_rc.right + 4;
+                        
+                        // '+' separator
+                        SetTextColor(hdc, COLOR_TEXT_MUTED);
+                        SelectObject(hdc, g_theme_fonts.font_mono_small);
+                        RECT plus_rc = { chip_x, chip_y, chip_x + 12, chip_y + 24 };
+                        DrawTextW(hdc, L"+", -1, &plus_rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                        chip_x += 16;
+                    }
+                }
+                
+                // Trailing target action prompt
+                RECT out_prompt;
+                DrawHudBadgeWithIcon(hdc, chip_x, chip_y, ICON_TARGET, L"Click or Press", RGB(16, 28, 24), COLOR_NEON_GREEN, COLOR_NEON_GREEN, &out_prompt);
+            } else {
+                // Default Prompt Header with Vector Reticle
+                SetTextColor(hdc, COLOR_TEXT_PRIMARY);
+                SelectObject(hdc, g_theme_fonts.font_title);
+                SIZE pr_sz;
+                GetTextExtentPoint32W(hdc, L"Press any Key or Mouse Button...", 32, &pr_sz);
+                int total_pr_w = 20 + 10 + pr_sz.cx;
+                int pr_start_x = (rc.right - total_pr_w) / 2;
+                DrawVectorIcon(hdc, ICON_TARGET, pr_start_x, 62, 18, COLOR_NEON_CYAN);
+                RECT pr_rc = { pr_start_x + 26, 60, pr_start_x + 26 + pr_sz.cx + 10, 86 };
+                DrawTextW(hdc, L"Press any Key or Mouse Button...", -1, &pr_rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+            }
             
             // Subtitle / Supported Inputs
             SetTextColor(hdc, COLOR_TEXT_MUTED);
             SelectObject(hdc, g_theme_fonts.font_body);
-            RECT sub_rc = { 20, 92, rc.right - 20, 114 };
-            DrawTextW(hdc, L"Keyboard keys, Mouse buttons (Left/Right/Middle/X1/X2), Combos", -1, &sub_rc, DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
+            RECT sub_rc = { 20, 114, rc.right - 20, 134 };
+            DrawTextW(hdc, L"Keyboard keys, Mouse buttons (Left/Right/Middle/X1/X2), Combos (Win+, Ctrl+, Alt+)", -1, &sub_rc, DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
             
             // Technical Tag
             SetTextColor(hdc, COLOR_NEON_CYAN);
             SelectObject(hdc, g_theme_fonts.font_mono_small);
-            RECT tag_rc = { 20, 122, rc.right - 20, 140 };
+            RECT tag_rc = { 20, 138, rc.right - 20, 154 };
             DrawTextW(hdc, L"RAW HARDWARE SCANCODE DISPATCH // SUB-MICROSECOND PRECISION", -1, &tag_rc, DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
             
             // Cancel Hint
             SetTextColor(hdc, COLOR_TEXT_DISABLED);
             SelectObject(hdc, g_theme_fonts.font_small);
-            RECT esc_rc = { 20, 150, rc.right - 20, 172 };
+            RECT esc_rc = { 20, 160, rc.right - 20, 180 };
             DrawTextW(hdc, L"Press [ ESC ] to cancel capture", -1, &esc_rc, DT_CENTER | DT_SINGLELINE | DT_NOPREFIX);
             
             EndPaint(hwnd, &ps);
@@ -158,11 +222,13 @@ static LRESULT CALLBACK CaptureWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             break;
             
         case WM_CLOSE:
+            KillTimer(hwnd, 1001);
             InputHook_StopCapture();
             DestroyWindow(hwnd);
             return 0;
             
         case WM_DESTROY:
+            KillTimer(hwnd, 1001);
             return 0;
     }
     return DefWindowProcW(hwnd, msg, wParam, lParam);
@@ -1202,22 +1268,22 @@ static LRESULT CALLBACK AddEditWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
                             trc.left += 10;
                             DrawTextW(dis->hDC, text, -1, &trc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
                         } else if (dis->itemID < (UINT)g_add_edit_state.binding.trigger_count) {
-                            DrawVectorIcon(dis->hDC, ICON_TARGET, dis->rcItem.left + 8, dis->rcItem.top + (24 - 12) / 2, 12, COLOR_NEON_CYAN);
+                            DrawVectorIcon(dis->hDC, ICON_TARGET, dis->rcItem.left + 8, dis->rcItem.top + (24 - 12) / 2, 12, is_selected ? COLOR_NEON_CYAN : COLOR_TEXT_MUTED);
                             
                             wchar_t trig_tag[32];
                             swprintf_s(trig_tag, 32, L"Trigger #%d:", dis->itemID + 1);
                             
-                            SetTextColor(dis->hDC, COLOR_NEON_CYAN);
+                            SetTextColor(dis->hDC, is_selected ? COLOR_NEON_CYAN : COLOR_TEXT_MUTED);
                             SelectObject(dis->hDC, g_theme_fonts.font_mono_small);
-                            RECT tag_rc = { dis->rcItem.left + 24, dis->rcItem.top, dis->rcItem.left + 105, dis->rcItem.bottom };
+                            RECT tag_rc = { dis->rcItem.left + 24, dis->rcItem.top, dis->rcItem.left + 95, dis->rcItem.bottom };
                             DrawTextW(dis->hDC, trig_tag, -1, &tag_rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
                             
                             wchar_t wtrig[MAX_KEY_NAME_LEN] = {0};
                             MultiByteToWideChar(CP_UTF8, 0, g_add_edit_state.binding.trigger_keys[dis->itemID], -1, wtrig, MAX_KEY_NAME_LEN);
                             
-                            SetTextColor(dis->hDC, is_selected ? COLOR_TEXT_PRIMARY : COLOR_TEXT_SECONDARY);
+                            SetTextColor(dis->hDC, is_selected ? COLOR_TEXT_PRIMARY : COLOR_NEON_CYAN);
                             SelectObject(dis->hDC, g_theme_fonts.font_mono_data);
-                            RECT val_rc = { dis->rcItem.left + 110, dis->rcItem.top, dis->rcItem.right - 8, dis->rcItem.bottom };
+                            RECT val_rc = { dis->rcItem.left + 100, dis->rcItem.top, dis->rcItem.right - 8, dis->rcItem.bottom };
                             DrawTextW(dis->hDC, wtrig, -1, &val_rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
                         }
                     }
@@ -1408,8 +1474,10 @@ static LRESULT CALLBACK AddEditWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
                         }
                     }
                     if (!exists) {
-                        StrCopySafe(g_add_edit_state.binding.trigger_keys[g_add_edit_state.binding.trigger_count++], captured, MAX_KEY_NAME_LEN);
+                        int new_idx = g_add_edit_state.binding.trigger_count++;
+                        StrCopySafe(g_add_edit_state.binding.trigger_keys[new_idx], captured, MAX_KEY_NAME_LEN);
                         RefreshTriggerList(g_add_edit_state.list_triggers);
+                        SendMessageW(g_add_edit_state.list_triggers, LB_SETCURSEL, new_idx, 0);
                     }
                 }
                 return 0;
@@ -1424,6 +1492,10 @@ static LRESULT CALLBACK AddEditWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
                     }
                     g_add_edit_state.binding.trigger_count--;
                     RefreshTriggerList(g_add_edit_state.list_triggers);
+                    if (g_add_edit_state.binding.trigger_count > 0) {
+                        int new_sel = sel < g_add_edit_state.binding.trigger_count ? sel : (g_add_edit_state.binding.trigger_count - 1);
+                        SendMessageW(g_add_edit_state.list_triggers, LB_SETCURSEL, new_sel, 0);
+                    }
                 }
                 return 0;
             }
@@ -1906,17 +1978,17 @@ bool ShowAddEditHotkeyDialog(HWND parent_hwnd, HotkeyBinding* in_out_binding, bo
     
     g_add_edit_state.list_triggers = CreateWindowW(
         L"LISTBOX", NULL, 
-        WS_CHILD | WS_VISIBLE | LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOTIFY, 
-        28, 138, 310, 42, 
+        WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOTIFY, 
+        28, 138, 310, 52, 
         hwnd, (HMENU)103, hInst, NULL
     );
     SendMessageW(g_add_edit_state.list_triggers, WM_SETFONT, (WPARAM)g_theme_fonts.font_mono_small, TRUE);
     RefreshTriggerList(g_add_edit_state.list_triggers);
     
-    g_add_edit_state.btn_add_trigger = CreateWindowW(L"BUTTON", L"Add Trigger", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 350, 138, 124, 42, hwnd, (HMENU)101, hInst, NULL);
+    g_add_edit_state.btn_add_trigger = CreateWindowW(L"BUTTON", L"Add Trigger", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 350, 138, 124, 28, hwnd, (HMENU)101, hInst, NULL);
     SendMessageW(g_add_edit_state.btn_add_trigger, WM_SETFONT, (WPARAM)hFontBold, TRUE);
     
-    g_add_edit_state.btn_remove_trigger = CreateWindowW(L"BUTTON", L"Remove", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 484, 138, 128, 42, hwnd, (HMENU)102, hInst, NULL);
+    g_add_edit_state.btn_remove_trigger = CreateWindowW(L"BUTTON", L"Remove", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 484, 138, 128, 28, hwnd, (HMENU)102, hInst, NULL);
     SendMessageW(g_add_edit_state.btn_remove_trigger, WM_SETFONT, (WPARAM)hFont, TRUE);
     
     // ========================================================================

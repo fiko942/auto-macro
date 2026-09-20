@@ -22,14 +22,54 @@ static MasterToggleCallback g_master_callback = NULL;
 static volatile bool g_bCapturing = false;
 static volatile bool g_bAllowEscapeCapture = false;
 static InputCaptureCallback g_capture_callback = NULL;
+static volatile uint8_t g_hook_modifiers = 0;
 
-static uint8_t GetCurrentModifiers(void) {
-    uint8_t mods = 0;
-    if (GetAsyncKeyState(VK_CONTROL) & 0x8000) mods |= MODIFIER_CTRL;
-    if (GetAsyncKeyState(VK_SHIFT) & 0x8000)   mods |= MODIFIER_SHIFT;
-    if (GetAsyncKeyState(VK_MENU) & 0x8000)    mods |= MODIFIER_ALT;
+static void UpdateModifierState(WORD vk, bool is_down) {
+    uint8_t flag = 0;
+    if (vk == VK_CONTROL || vk == VK_LCONTROL || vk == VK_RCONTROL) flag = MODIFIER_CTRL;
+    else if (vk == VK_SHIFT || vk == VK_LSHIFT || vk == VK_RSHIFT) flag = MODIFIER_SHIFT;
+    else if (vk == VK_MENU || vk == VK_LMENU || vk == VK_RMENU) flag = MODIFIER_ALT;
+    else if (vk == VK_LWIN || vk == VK_RWIN) flag = MODIFIER_WIN;
+
+    if (flag) {
+        if (is_down) {
+            g_hook_modifiers |= flag;
+        } else {
+            bool still_down = false;
+            if (flag == MODIFIER_CTRL) {
+                still_down = ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) ||
+                             ((GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0) ||
+                             ((GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0);
+            } else if (flag == MODIFIER_SHIFT) {
+                still_down = ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) ||
+                             ((GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0) ||
+                             ((GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0);
+            } else if (flag == MODIFIER_ALT) {
+                still_down = ((GetAsyncKeyState(VK_MENU) & 0x8000) != 0) ||
+                             ((GetAsyncKeyState(VK_LMENU) & 0x8000) != 0) ||
+                             ((GetAsyncKeyState(VK_RMENU) & 0x8000) != 0);
+            } else if (flag == MODIFIER_WIN) {
+                still_down = ((GetAsyncKeyState(VK_LWIN) & 0x8000) != 0) ||
+                             ((GetAsyncKeyState(VK_RWIN) & 0x8000) != 0);
+            }
+            if (!still_down) {
+                g_hook_modifiers &= ~flag;
+            }
+        }
+    }
+}
+
+uint8_t InputHook_GetLiveModifiers(void) {
+    uint8_t mods = g_hook_modifiers;
+    if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) || (GetAsyncKeyState(VK_LCONTROL) & 0x8000) || (GetAsyncKeyState(VK_RCONTROL) & 0x8000)) mods |= MODIFIER_CTRL;
+    if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) || (GetAsyncKeyState(VK_LSHIFT) & 0x8000) || (GetAsyncKeyState(VK_RSHIFT) & 0x8000))   mods |= MODIFIER_SHIFT;
+    if ((GetAsyncKeyState(VK_MENU) & 0x8000) || (GetAsyncKeyState(VK_LMENU) & 0x8000) || (GetAsyncKeyState(VK_RMENU) & 0x8000))    mods |= MODIFIER_ALT;
     if ((GetAsyncKeyState(VK_LWIN) & 0x8000) || (GetAsyncKeyState(VK_RWIN) & 0x8000)) mods |= MODIFIER_WIN;
     return mods;
+}
+
+static uint8_t GetCurrentModifiers(void) {
+    return InputHook_GetLiveModifiers();
 }
 
 bool ParseTriggerString(const char* trigger_str, FastTrigger* out_trigger) {
@@ -53,13 +93,13 @@ bool ParseTriggerString(const char* trigger_str, FastTrigger* out_trigger) {
     
     while (part) {
         StrTrim(part);
-        if (strcmp(part, "ctrl") == 0 || strcmp(part, "lctrl") == 0 || strcmp(part, "rctrl") == 0) {
+        if (strcmp(part, "ctrl") == 0 || strcmp(part, "lctrl") == 0 || strcmp(part, "rctrl") == 0 || strcmp(part, "control") == 0) {
             out_trigger->modifiers_mask |= MODIFIER_CTRL;
         } else if (strcmp(part, "shift") == 0 || strcmp(part, "lshift") == 0 || strcmp(part, "rshift") == 0) {
             out_trigger->modifiers_mask |= MODIFIER_SHIFT;
-        } else if (strcmp(part, "alt") == 0 || strcmp(part, "lalt") == 0 || strcmp(part, "ralt") == 0) {
+        } else if (strcmp(part, "alt") == 0 || strcmp(part, "lalt") == 0 || strcmp(part, "ralt") == 0 || strcmp(part, "menu") == 0) {
             out_trigger->modifiers_mask |= MODIFIER_ALT;
-        } else if (strcmp(part, "win") == 0 || strcmp(part, "lwin") == 0 || strcmp(part, "rwin") == 0) {
+        } else if (strcmp(part, "win") == 0 || strcmp(part, "lwin") == 0 || strcmp(part, "rwin") == 0 || strcmp(part, "windows") == 0 || strcmp(part, "super") == 0) {
             out_trigger->modifiers_mask |= MODIFIER_WIN;
         }
         StrCopySafe(last_part, part, sizeof(last_part));
@@ -67,15 +107,15 @@ bool ParseTriggerString(const char* trigger_str, FastTrigger* out_trigger) {
     }
     
     // Check if the base key is a mouse button
-    if (strcmp(last_part, "mouse_left") == 0 || strcmp(last_part, "left") == 0) {
+    if (strcmp(last_part, "mouse_left") == 0 || strcmp(last_part, "left_click") == 0 || strcmp(last_part, "lclick") == 0 || strcmp(last_part, "mouse1") == 0) {
         out_trigger->mouse_btn = MOUSE_TRIGGER_LEFT;
-    } else if (strcmp(last_part, "mouse_right") == 0 || strcmp(last_part, "right") == 0) {
+    } else if (strcmp(last_part, "mouse_right") == 0 || strcmp(last_part, "right_click") == 0 || strcmp(last_part, "rclick") == 0 || strcmp(last_part, "mouse2") == 0) {
         out_trigger->mouse_btn = MOUSE_TRIGGER_RIGHT;
-    } else if (strcmp(last_part, "mouse_middle") == 0 || strcmp(last_part, "middle") == 0) {
+    } else if (strcmp(last_part, "mouse_middle") == 0 || strcmp(last_part, "middle_click") == 0 || strcmp(last_part, "mclick") == 0 || strcmp(last_part, "mouse3") == 0) {
         out_trigger->mouse_btn = MOUSE_TRIGGER_MIDDLE;
-    } else if (strcmp(last_part, "mouse_x1") == 0 || strcmp(last_part, "x1") == 0) {
+    } else if (strcmp(last_part, "mouse_x1") == 0 || strcmp(last_part, "x1") == 0 || strcmp(last_part, "mouse4") == 0) {
         out_trigger->mouse_btn = MOUSE_TRIGGER_X1;
-    } else if (strcmp(last_part, "mouse_x2") == 0 || strcmp(last_part, "x2") == 0) {
+    } else if (strcmp(last_part, "mouse_x2") == 0 || strcmp(last_part, "x2") == 0 || strcmp(last_part, "mouse5") == 0) {
         out_trigger->mouse_btn = MOUSE_TRIGGER_X2;
     } else {
         out_trigger->vk = KeyNameToVk(last_part);
@@ -114,22 +154,31 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
         bool is_up = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP);
         
         WORD vk = (WORD)pkb->vkCode;
+        
+        // Update atomic modifier state immediately
+        UpdateModifierState(vk, is_down);
         uint8_t mods = GetCurrentModifiers();
         
         // Handle Interactive Capture Mode
-        if (g_bCapturing && is_down) {
-            if (vk == VK_ESCAPE && !g_bAllowEscapeCapture) {
+        if (g_bCapturing) {
+            if (is_down && vk == VK_ESCAPE && !g_bAllowEscapeCapture) {
                 // Cancel capture on unhandled escape
                 InputHook_StopCapture();
                 return 1;
             }
             
-            // Ignore bare modifier presses during capture until base key is hit
-            if (vk != VK_CONTROL && vk != VK_LCONTROL && vk != VK_RCONTROL &&
-                vk != VK_SHIFT && vk != VK_LSHIFT && vk != VK_RSHIFT &&
-                vk != VK_MENU && vk != VK_LMENU && vk != VK_RMENU &&
-                vk != VK_LWIN && vk != VK_RWIN) {
-                
+            // Check if this is a modifier key
+            bool is_mod = (vk == VK_CONTROL || vk == VK_LCONTROL || vk == VK_RCONTROL ||
+                           vk == VK_SHIFT || vk == VK_LSHIFT || vk == VK_RSHIFT ||
+                           vk == VK_MENU || vk == VK_LMENU || vk == VK_RMENU ||
+                           vk == VK_LWIN || vk == VK_RWIN);
+            
+            if (is_mod) {
+                // Suppress Start menu and system hotkeys while capture dialog is waiting
+                return 1;
+            }
+            
+            if (is_down) {
                 char combo[64];
                 const char* base_name = VkToKeyName(vk);
                 BuildComboString(mods, base_name, combo, sizeof(combo));
@@ -139,8 +188,9 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
                 if (cb) {
                     cb(combo, combo);
                 }
-                return 1; // Block the test key
+                return 1; // Block the captured key
             }
+            return 1;
         }
         
         if (is_down || is_up) {

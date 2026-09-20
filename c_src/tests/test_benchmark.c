@@ -133,13 +133,67 @@ int main() {
     
     InputHook_UpdateTriggers(&hook_cfg);
     
-    // Verify trigger parsing for mouse_left
+    // Verify trigger parsing for mouse_left and multi-modifier combos
     FastTrigger ft_mouse;
     bool parsed_mouse = ParseTriggerString("mouse_left", &ft_mouse);
     if (parsed_mouse && ft_mouse.mouse_btn == MOUSE_TRIGGER_LEFT) {
         printf("  -> ParseTriggerString('mouse_left') correctly mapped to MOUSE_TRIGGER_LEFT: PASSED\n");
     } else {
         printf("  -> ParseTriggerString('mouse_left') check FAILED\n");
+        return 1;
+    }
+    
+    // Verify Ctrl + Mouse Left
+    FastTrigger ft_ctrl_mouse;
+    if (ParseTriggerString("ctrl+mouse_left", &ft_ctrl_mouse) && 
+        ft_ctrl_mouse.mouse_btn == MOUSE_TRIGGER_LEFT && 
+        ft_ctrl_mouse.modifiers_mask == MODIFIER_CTRL) {
+        printf("  -> ParseTriggerString('ctrl+mouse_left'): PASSED\n");
+    } else {
+        printf("  -> ParseTriggerString('ctrl+mouse_left') check FAILED\n");
+        return 1;
+    }
+
+    // Verify Win + Mouse Left
+    FastTrigger ft_win_mouse;
+    if (ParseTriggerString("win+mouse_left", &ft_win_mouse) && 
+        ft_win_mouse.mouse_btn == MOUSE_TRIGGER_LEFT && 
+        ft_win_mouse.modifiers_mask == MODIFIER_WIN) {
+        printf("  -> ParseTriggerString('win+mouse_left'): PASSED\n");
+    } else {
+        printf("  -> ParseTriggerString('win+mouse_left') check FAILED\n");
+        return 1;
+    }
+
+    // Verify Ctrl + Alt + Mouse Left
+    FastTrigger ft_ctrl_alt_mouse;
+    if (ParseTriggerString("ctrl+alt+mouse_left", &ft_ctrl_alt_mouse) && 
+        ft_ctrl_alt_mouse.mouse_btn == MOUSE_TRIGGER_LEFT && 
+        ft_ctrl_alt_mouse.modifiers_mask == (MODIFIER_CTRL | MODIFIER_ALT)) {
+        printf("  -> ParseTriggerString('ctrl+alt+mouse_left'): PASSED\n");
+    } else {
+        printf("  -> ParseTriggerString('ctrl+alt+mouse_left') check FAILED\n");
+        return 1;
+    }
+
+    // Verify Shift + Mouse Right
+    FastTrigger ft_shift_mouse_r;
+    if (ParseTriggerString("shift+mouse_right", &ft_shift_mouse_r) && 
+        ft_shift_mouse_r.mouse_btn == MOUSE_TRIGGER_RIGHT && 
+        ft_shift_mouse_r.modifiers_mask == MODIFIER_SHIFT) {
+        printf("  -> ParseTriggerString('shift+mouse_right'): PASSED\n");
+    } else {
+        printf("  -> ParseTriggerString('shift+mouse_right') check FAILED\n");
+        return 1;
+    }
+
+    // Verify BuildComboString
+    char combo_test[64];
+    BuildComboString(MODIFIER_CTRL | MODIFIER_ALT, "mouse_left", combo_test, sizeof(combo_test));
+    if (strcmp(combo_test, "ctrl+alt+mouse_left") == 0) {
+        printf("  -> BuildComboString(CTRL|ALT, 'mouse_left'): PASSED (%s)\n", combo_test);
+    } else {
+        printf("  -> BuildComboString check FAILED (got %s)\n", combo_test);
         return 1;
     }
     

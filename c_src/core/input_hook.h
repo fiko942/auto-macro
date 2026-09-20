@@ -6,10 +6,14 @@
 #include <stdint.h>
 #include "../common/types.h"
 
+// Modifiers bitmask
+#define MODIFIER_NONE  0x00
 #define MODIFIER_CTRL  (1 << 0)
 #define MODIFIER_SHIFT (1 << 1)
 #define MODIFIER_ALT   (1 << 2)
 #define MODIFIER_WIN   (1 << 3)
+
+uint8_t InputHook_GetLiveModifiers(void);
 
 // Mouse button types for triggers
 typedef enum {
