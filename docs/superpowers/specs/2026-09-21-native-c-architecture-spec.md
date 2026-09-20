@@ -88,7 +88,7 @@ Tobelsoft Macro is an ultra-low-latency, zero-dependency native Windows automati
 - **Timing:** Hybrid spinlock + `CreateWaitableTimerExW` with `CREATE_WAITABLE_TIMER_HIGH_RESOLUTION` for accurate millisecond and sub-millisecond sleeps.
 - **Cycle Control:** Configurable repeat count (0 = infinite while held / toggle mode).
 
-### 4.4 Preset & Configuration Manager (`c_src/core/config_manager.c`, `c_src/core/config_manager.h`)
+### 4.4 Preset & Configuration Manager (`c_src/storage/config_manager.c`, `c_src/storage/config_manager.h`)
 - **Storage Path:** `%APPDATA%\TobelsoftMacro\presets.json`
 - **Parser:** Inlined lightweight `cJSON` parser.
 - **Atomicity:** Safe write to `.tmp` file followed by atomic `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING`.

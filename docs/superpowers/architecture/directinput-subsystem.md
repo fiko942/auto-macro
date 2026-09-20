@@ -37,7 +37,7 @@ Windows input processing is divided into three distinct layers:
 
 ## 2. DirectInput Scancode Mapping Table
 
-The hardware scancode subsystem in `c_src/core/direct_input.c` provides translation between Virtual Key definitions and standard PS/2 Set 1 scancodes:
+The hardware scancode subsystem in `c_src/core/input_sender.c` provides translation between Virtual Key definitions and standard PS/2 Set 1 scancodes:
 
 | Key Name | Virtual Key (`VK_`) | Hardware Scancode (Hex) | Extended Key Flag |
 |---|---|---|---|

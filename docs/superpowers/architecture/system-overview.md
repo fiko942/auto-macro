@@ -12,14 +12,19 @@ The entire native codebase is organized into clean functional modules under `c_s
 ```
 c_src/
 ├── main.c                     # WinMain entry point, single-instance mutex, DPI setup, message loop
+├── app.manifest               # High-DPI Per-Monitor V2 and Common Controls v6 manifest
+├── common/
+│   ├── types.h / .c           # Core structs: HotkeyBinding, KeyAction, AppConfig, ActionType
+│   ├── utils.h / .c           # Safe string utils, UUID generation, high-resolution timers
+│   └── cJSON.h / .c           # Ultra-lightweight JSON parser and serializer
 ├── core/
-│   ├── types.h                # Core structs: MacroItem, ActionStep, AppConfig, HotkeyTrigger
-│   ├── direct_input.h / .c    # DirectInput hardware scancode definitions and key translation
-│   ├── input_hook.h / .c      # WH_KEYBOARD_LL & WH_MOUSE_LL low-level hooks & trigger filtering
-│   ├── input_sender.h / .c    # SendInput hardware scancode injection & high-precision timers
-│   ├── macro_engine.h / .c    # Async execution thread management, loop control, safety stops
-│   └── config_manager.h / .c  # cJSON preset parser, serialization, and %APPDATA% persistence
+│   ├── input_hook.h / .c      # WH_KEYBOARD_LL & WH_MOUSE_LL low-level hooks & modifier tracking
+│   ├── input_sender.h / .c    # SendInput hardware scancode injection & key resolution
+│   └── macro_engine.h / .c    # Async execution thread management, loop control, safety stops
+├── storage/
+│   └── config_manager.h / .c  # JSON preset parser, serialization, and %APPDATA% persistence
 ├── ui/
+│   ├── animation.h / .c       # Micro-animation tweening and easing engine
 │   ├── theme.h / .c           # Cyberpunk dark theme color tokens, typography, custom control widgets
 │   ├── ui_icons.h / .c        # Pure Win32 GDI geometric vector icon rendering engine
 │   ├── main_window.h / .c     # Top-level window, titlebar hit-testing, bento cards, navigation
@@ -58,63 +63,59 @@ Tobelsoft Macro utilizes a multi-threaded architecture with strict separation be
 
 ## 3. Data Structures & Memory Layout
 
-### 3.1 `ActionStep`
-Represents a single atomic macro action:
+### 3.1 `ActionType` & `KeyAction` (`c_src/common/types.h`)
+Represents an individual action step inside a macro sequence:
 ```c
+#define MAX_KEYS_PER_ACTION 4
+#define MAX_KEY_NAME_LEN 32
+
 typedef enum {
-    ACTION_KEY_PRESS = 0,
-    ACTION_KEY_DOWN,
-    ACTION_KEY_UP,
-    ACTION_KEY_HOLD,
-    ACTION_MOUSE_CLICK,
-    ACTION_MOUSE_DOWN,
-    ACTION_MOUSE_UP,
-    ACTION_DELAY
+    ACTION_KEY_PRESS = 0,     // Tap key down and up
+    ACTION_KEY_DOWN,          // Hold key down
+    ACTION_KEY_UP,            // Release key up
+    ACTION_KEY_HOLD,          // Hold key for specific duration in ms
+    ACTION_KEY_SEQUENCE,      // Sequence of keys in order
+    ACTION_DELAY              // Wait / delay in ms
 } ActionType;
 
 typedef struct {
-    ActionType type;
-    DWORD vk_code;          // Virtual Key code or Mouse Button ID
-    DWORD scan_code;        // DirectInput hardware scan code
-    DWORD duration_ms;      // Hold or delay duration in milliseconds
-    DWORD mouse_button;     // 0=None, 1=Left, 2=Right, 3=Middle, 4=X1, 5=X2
-    POINT mouse_pos;        // Target coordinates (if applicable)
-} ActionStep;
+    ActionType action_type;
+    char keys[MAX_KEYS_PER_ACTION][MAX_KEY_NAME_LEN];
+    int key_count;
+    int duration;             // In milliseconds
+} KeyAction;
 ```
 
-### 3.2 `HotkeyTrigger` & `MacroItem`
-Represents independent activation triggers and a complete automated macro profile:
+### 3.2 `HotkeyBinding` & `AppConfig` (`c_src/common/types.h`)
+Represents a complete macro binding profile and the application root state:
 ```c
-#define MAX_TRIGGERS_PER_MACRO 8
+#define MAX_BINDINGS 64
+#define MAX_ACTIONS_PER_BINDING 16
+#define MAX_TRIGGERS_PER_BINDING 4
+#define MAX_MASTER_TRIGGERS 8
+#define MAX_NAME_LEN 64
+#define MAX_ID_LEN 40
 
 typedef struct {
-    TriggerType type;       // TRIGGER_TYPE_KEYBOARD or TRIGGER_TYPE_MOUSE
-    DWORD vk_code;          // Virtual Key code or 0 for mouse
-    DWORD mouse_button;     // 1=Left, 2=Right, 3=Middle, 4=X1, 5=X2
-    uint8_t modifiers;      // Bitmask: MODIFIER_CTRL | MODIFIER_SHIFT | MODIFIER_ALT | MODIFIER_WIN
-    char raw_combo[64];     // Normalized representation (e.g. "ctrl+mouse_left")
-} HotkeyTrigger;
-
-typedef struct {
-    char id[64];
-    wchar_t name[128];
-    bool is_enabled;
-    bool is_executing;
-    
-    // Multi-Trigger Configuration
-    HotkeyTrigger triggers[MAX_TRIGGERS_PER_MACRO];
+    char id[MAX_ID_LEN];
+    char name[MAX_NAME_LEN];
+    char trigger_keys[MAX_TRIGGERS_PER_BINDING][MAX_KEY_NAME_LEN];
     int trigger_count;
-    
-    bool suppress_original_input;
-    bool left_click_safety_lock;
-    int repeat_count;       // 0 = infinite while held
-    DWORD repeat_delay_ms;
-    ActionStep* steps;
-    int step_count;
-    int step_capacity;
-    HANDLE h_worker_thread;
-    volatile bool cancel_requested;
-} MacroItem;
+    KeyAction actions[MAX_ACTIONS_PER_BINDING];
+    int action_count;
+    bool enabled;
+    bool repeat;
+    int repeat_delay;         // In milliseconds
+    bool block_input;
+} HotkeyBinding;
+
+typedef struct {
+    HotkeyBinding bindings[MAX_BINDINGS];
+    int binding_count;
+    char master_triggers[MAX_MASTER_TRIGGERS][MAX_KEY_NAME_LEN];
+    int master_trigger_count;
+    bool active;
+} AppConfig;
 ```
 
 ---

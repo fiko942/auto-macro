@@ -2,7 +2,7 @@
 
 **Status:** Completed & Approved  
 **Date:** 2026-09-21  
-**Module:** `c_src/core/` (`direct_input.c`, `input_hook.c`, `input_sender.c`, `macro_engine.c`)  
+**Module:** `c_src/core/` (`input_hook.c`, `input_sender.c`, `macro_engine.c`)  
 
 ---
 

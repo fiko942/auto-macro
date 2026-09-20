@@ -23,40 +23,38 @@ This specification defines:
 
 ## 2. Multi-Trigger Architecture & Data Model
 
-### 2.1 Multi-Trigger Data Structures (`c_src/core/types.h`)
-Each `MacroItem` encapsulates an array of up to `MAX_TRIGGERS_PER_MACRO` (8) independent `HotkeyTrigger` definitions:
+### 2.1 Multi-Trigger Data Structures (`c_src/common/types.h`)
+Each `HotkeyBinding` encapsulates an array of up to `MAX_TRIGGERS_PER_BINDING` (4) independent trigger key combinations, while the master application trigger supports up to `MAX_MASTER_TRIGGERS` (8):
 
 ```c
-#define MAX_TRIGGERS_PER_MACRO 8
+#define MAX_BINDINGS 64
+#define MAX_TRIGGERS_PER_BINDING 4
+#define MAX_MASTER_TRIGGERS 8
+#define MAX_KEY_NAME_LEN 32
 
 typedef struct {
-    TriggerType type;       // TRIGGER_TYPE_KEYBOARD or TRIGGER_TYPE_MOUSE
-    DWORD vk_code;          // Virtual Key code (e.g., VK_LEFT, 0x41)
-    DWORD mouse_button;     // 1=Left, 2=Right, 3=Middle, 4=X1, 5=X2
-    uint8_t modifiers;      // Bitmask: MODIFIER_CTRL | MODIFIER_SHIFT | MODIFIER_ALT | MODIFIER_WIN
-    char raw_combo[64];     // Normalized representation (e.g., "ctrl+mouse_left")
-} HotkeyTrigger;
-
-typedef struct {
-    char id[64];
-    wchar_t name[128];
-    bool is_enabled;
-    bool is_executing;
+    char id[MAX_ID_LEN];
+    char name[MAX_NAME_LEN];
     
     // Multi-Trigger Array
-    HotkeyTrigger triggers[MAX_TRIGGERS_PER_MACRO];
+    char trigger_keys[MAX_TRIGGERS_PER_BINDING][MAX_KEY_NAME_LEN];
     int trigger_count;
     
-    bool suppress_original_input;
-    bool left_click_safety_lock;
-    int repeat_count;       // 0 = infinite loop while held / toggle
-    DWORD repeat_delay_ms;
-    ActionStep* steps;
-    int step_count;
-    int step_capacity;
-    HANDLE h_worker_thread;
-    volatile bool cancel_requested;
-} MacroItem;
+    KeyAction actions[MAX_ACTIONS_PER_BINDING];
+    int action_count;
+    bool enabled;
+    bool repeat;
+    int repeat_delay;         // In milliseconds
+    bool block_input;         // Selective input suppression
+} HotkeyBinding;
+
+typedef struct {
+    HotkeyBinding bindings[MAX_BINDINGS];
+    int binding_count;
+    char master_triggers[MAX_MASTER_TRIGGERS][MAX_KEY_NAME_LEN];
+    int master_trigger_count;
+    bool active;
+} AppConfig;
 ```
 
 ---
